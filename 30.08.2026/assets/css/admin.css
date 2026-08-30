@@ -1,0 +1,19 @@
+/* Admin paneli stil dosyası */
+.admin-body { background: #f4f6f9; margin:0; font-family: system-ui, -apple-system, sans-serif; }
+.admin-wrapper { display: flex; min-height: 100vh; }
+.admin-sidebar { width: 240px; background: #1a202c; color: #fff; flex-shrink:0; padding-top: 20px; }
+.sidebar-brand { padding: 0 20px 20px; font-size: 20px; }
+.sidebar-brand a { color: #fff; text-decoration: none; }
+.sidebar-nav ul { list-style: none; padding:0; margin:0; }
+.sidebar-nav li a { display: block; padding: 10px 20px; color: #a0aec0; text-decoration: none; }
+.sidebar-nav li a:hover { background: #2d3748; color: #fff; }
+.sidebar-nav li a.active { background: #2b6cb0; color: #fff; }
+.sidebar-nav hr { border:0; border-top:1px solid #2d3748; margin:10px 20px; }
+.admin-main { flex:1; padding:20px; }
+.admin-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding:15px 20px; border-radius:8px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+.admin-header h1 { font-size:22px; margin:0; }
+.flash { padding:12px 16px; border-radius:6px; margin-bottom:20px; }
+.flash-basari { background:#c6f6d5; color:#22543d; border-left:4px solid #38a169; }
+.flash-hata { background:#fed7d7; color:#9b2c2c; border-left:4px solid #e53e3e; }
+.admin-content { background:#fff; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+.admin-footer { margin-top:20px; text-align:center; color:#718096; font-size:13px; }
