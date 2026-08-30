@@ -44,10 +44,9 @@ XAMPP ile yerel kullanım için proje klasörünü `htdocs` altına koymanız ye
 1. Proje dosyalarını web sunucunuzun yayın klasörüne yükleyin.
 2. Hosting panelinden boş bir MySQL veritabanı ve buna yetkili bir kullanıcı oluşturun.
 3. Tarayıcıdan `https://alanadiniz.com/proje-klasoru/install.php` adresini açın.
-4. **Mevcut veritabanına kur** seçeneğini kullanın; bu seçenek hosting hesabınızda veritabanı oluşturma yetkisi gerektirmez.
-5. Veritabanı ve ilk yönetici hesabı bilgilerini girerek kurulumu tamamlayın.
+4. Kurulum ekranındaki veritabanı bilgilerini ve ilk yönetici hesabını girerek kurulumu tamamlayın. Sistem yeni veritabanı oluşturmayı denemez.
 
-Kurulum tamamlandığında `config/config.php`, `config/database.php` ve `config/install.lock` otomatik oluşturulur. Bu dosyalar ortamınıza özeldir; depoda veya temiz kurulum paketinde bulunmamalıdır.
+Kurulum yalnızca önceden oluşturulmuş ve kullanıcıya yetki verilmiş bir veritabanına bağlanır. Kurulum tamamlandığında `config/config.php`, `config/database.php` ve `config/install.lock` otomatik oluşturulur. Bu dosyalar ortamınıza özeldir; depoda veya temiz kurulum paketinde bulunmamalıdır.
 
 > Kurulum işlemi hedef veritabanındaki sistem tablolarını yeniden oluşturabilir. Canlı bir kurulum üzerinde işlem yapmadan önce mutlaka yedek alın.
 
@@ -135,4 +134,8 @@ okculuk-ligi/
 
 ## Lisans
 
-Bu depo için henüz ayrı bir lisans metni eklenmemiştir. GitHub’da yayımlamadan önce kullanım ve dağıtım koşullarınızı tanımlayan bir `LICENSE` dosyası eklemeniz önerilir.
+Bu proje, **GNU General Public License v3.0 (GPL-3.0)** ile lisanslanmıştır. Ayrıntılı koşullar için [LICENSE](LICENSE) dosyasına bakın.
+
+Telif hakkı © 2026 **Sencer BALCIOĞLU**. Sistemin ilk sürümü Sencer BALCIOĞLU tarafından geliştirilmiştir.
+
+GPL-3.0; sistemin kullanılmasına, incelenmesine, değiştirilmesine, dağıtılmasına ve ücretli hizmet kapsamında sunulmasına izin verir. Ancak projeyi veya değiştirilmiş bir sürümünü dağıtan kişiler, karşılık gelen kaynak kodunu da GPL-3.0 koşullarıyla erişilebilir tutmalıdır.
