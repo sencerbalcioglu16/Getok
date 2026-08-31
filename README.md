@@ -1,141 +1,191 @@
 # Geleneksel Türk Okçuluğu Bölge Ligleri
 
-Geleneksel Türk okçuluğu organizasyonları için geliştirilmiş, PHP ve MySQL tabanlı bir lig ve turnuva yönetim sistemidir. Takım ligleri, **Bireysel Bölge Ligleri**, takım turnuvaları ve bireysel turnuvalar; tek bir yönetim panelinden yönetilebilir.
+Geleneksel Türk okçuluğu için geliştirilmiş, PHP ve MySQL tabanlı açık kaynaklı lig ve turnuva yönetim sistemidir. Takım Ligleri, Bireysel Bölge Ligleri, takım turnuvaları ve bireysel turnuvalar aynı uygulama içinde yönetilir.
 
-Sistem; fikstür, karşılaşma ve set puanı girişi, puan durumları, sezon arşivi, sporcu/takım kartları, duyurular ve kullanıcı takibi gibi ihtiyaçları kapsar.
+Sistem; sezon, grup, fikstür, karşılaşma, puan durumu, turnuva ağacı, sporcu ve takım kartları, kurumsal içerikler, duyurular ve rol bazlı yönetim panelini kapsar.
 
 ## Öne çıkan özellikler
 
-- Takım Ligi, Bireysel Bölge Ligleri, takım turnuvası ve bireysel turnuva yönetimi
-- Sezon bazlı organizasyonlar, grup yapısı ve resmî sonuç arşivi
-- Takım liglerinde set puanı ve atış puanı bazlı puan durumu
-- Bireysel organizasyonlarda takımdan bağımsız sporcu puan ve sıralaması
-- 16 veya 32 katılımcılı turnuvalar için dinamik eşleşme ağacı
-- Planlanan ve tamamlanan karşılaşmaların fikstür ve sonuç ekranları
-- Hakem için adım adım set bazlı skor girişi
-- Eşitlik bozma atışları ile set galibini belirleme
-- Sporcu ve takım profilleri, fotoğraf/logo yükleme ve favoriye alma
-- Duyuru, haber, yönetmelik ve kurumsal sayfalar için HTML editörü
-- Mobil uyumlu, sağdan açılır ana menü
-- Rol bazlı yönetim paneli: Yönetici, Hakem, Yetkili, Sporcu ve Üye
+- Takım Ligi ve Bireysel Bölge Ligleri yönetimi
+- Takım ve bireysel turnuvalar için 16/32 katılımcılı eşleşme ağacı
+- A–C ve B–D sıralamasına göre otomatik ilk tur eşleşmeleri
+- Sezon oluşturma, aktif sezon yönetimi, sezon kapanışı ve resmî sonuç arşivi
+- Takım grupları ile bireysel bölge-kategori gruplarının bağımsız yönetimi
+- Takım ligleri için çift devreli otomatik fikstür
+- Bireysel ligler için grup bazlı, 10 haftalık atış fikstürü
+- Set bazlı karşılaşma skoru, eşitlik bozma ve canlı karşılaşma detayları
+- Bireysel atışlarda sporcu başına haftalık 0–21 puan girişi
+- Takım ve sporcu kartları, profil fotoğrafı ve takım logosu yükleme
+- Favori takım ve sporcu takibi
+- Lig, grup, kategori ve sonuç filtreleri
+- Puan durumu tablolarında sütun bazlı artan/azalan sıralama
+- Duyuru, haber, yönetmelik ve kurumsal içerik yönetimi
+- Mobil uyumlu ana menü ve yönetim paneli
 
-## Karşılaşma ve puanlama kuralları
+## Organizasyon türleri
 
-Takım karşılaşmalarında bir takım sette beş sporcu ile yer alır. Her sporcu, bir sette **7 ok** atar ve bu yedi okun toplam puanı tek değer olarak kaydedilir. Bir sporcunun set puanı en fazla **21** olabilir.
+| Tür | Katılımcı | Temel yapı |
+| --- | --- | --- |
+| Takım Ligi | Takımlar | Grup, haftalık fikstür ve puan durumu |
+| Bireysel Bölge Ligleri | Sporcular | Bölge + kategori grubu, haftalık atış puanı |
+| Takım Turnuvası | Takımlar | 16 veya 32 katılımcı, eleme ağacı |
+| Bireysel Turnuva | Sporcular | 16 veya 32 katılımcı, eleme ağacı |
 
-- Karşılaşmalar setler üzerinden sonuçlanır.
-- Bir set eşit bitemez. Eşitlikte, iki taraf için eşitlik bozma atışları kaydedilir ve galip belirlenene kadar devam edilir.
-- Eşitlik bozma puanları set galibini belirler; takımın sezonluk atış averajına eklenmez.
-- Takım Ligi grup sıralaması önce set puanına, sonra atış puanına göre yapılır.
-- Bireysel Bölge Ligleri ve bireysel turnuvalar, takım organizasyonlarından bağımsız istatistik tutar.
+## Kategoriler ve puanlama
+
+### Sporcu kategorileri
+
+Sporcu kaydında kategori, doğum tarihi ve cinsiyete göre otomatik hesaplanır:
+
+| Koşul | Kategori |
+| --- | --- |
+| 8–11 yaş | Minikler |
+| 12–15 yaş | Yıldızlar |
+| 16–17 yaş | Gençler |
+| 18 yaş ve üzeri erkek | Yetişkin |
+| 18 yaş ve üzeri kadın | Kadınlar |
+
+Bireysel lig grupları yalnızca aynı kategorideki sporcuları kabul eder. Örneğin “Marmara Bölgesi > Kadınlar” grubuna yalnızca Kadınlar kategorisindeki sporcular kaydedilebilir.
+
+### Karşılaşma ve atış kuralları
+
+- Bir sporcu, bir sette 7 ok atar.
+- Bir sporcunun tek set puanı en fazla **21** olabilir.
+- Takım karşılaşmalarında set galibi, iki takımın o setteki sporcu puanlarının toplamıyla belirlenir.
+- Set eşit bitemez. Eşitlikte iki taraf için ayrı eşitlik bozma atışı girilir; galip belirlenene kadar devam edilir.
+- Eşitlik bozma puanları yalnızca set galibini belirler, sezonluk atış averajına eklenmez.
+- Takım Ligi sıralaması önce set puanına, ardından atış puanına göre yapılır.
+- Bireysel Bölge Ligleri, takım organizasyonlarından bağımsız toplam puan ve atış sayısı tutar.
 
 ## Gereksinimler
 
-- PHP 7.4 veya üzeri
+- PHP 8.0 veya üzeri
 - MySQL 5.7+ ya da MariaDB 10.3+
-- Apache veya PHP destekli eşdeğer bir web sunucusu
-- `pdo_mysql` PHP eklentisi
-- `assets/uploads/` klasörüne yazma izni
+- Apache, Nginx veya PHP destekli eşdeğer bir web sunucusu
+- PHP `pdo_mysql` eklentisi
+- `assets/uploads/` klasörü için uygulamanın yazma izni
 
-XAMPP ile yerel kullanım için proje klasörünü `htdocs` altına koymanız yeterlidir.
+XAMPP kullanıyorsanız proje klasörünü `htdocs` altına yerleştirmeniz yeterlidir.
 
 ## Kurulum
 
-1. Proje dosyalarını web sunucunuzun yayın klasörüne yükleyin.
-2. Hosting panelinden boş bir MySQL veritabanı ve buna yetkili bir kullanıcı oluşturun.
+1. Paketi web sunucunuzun yayın klasörüne çıkarın.
+2. Hosting panelinizden boş bir MySQL veritabanı ve bu veritabanına yetkili kullanıcı oluşturun.
 3. Tarayıcıdan `https://alanadiniz.com/proje-klasoru/install.php` adresini açın.
-4. Kurulum ekranındaki veritabanı bilgilerini ve ilk yönetici hesabını girerek kurulumu tamamlayın. Sistem yeni veritabanı oluşturmayı denemez.
+4. Veritabanı bilgilerini ve ilk tam yönetici hesabını girin.
+5. Kurulum tamamlandıktan sonra giriş yapıp sezon ve organizasyonları oluşturun.
 
-Kurulum yalnızca önceden oluşturulmuş ve kullanıcıya yetki verilmiş bir veritabanına bağlanır. Kurulum tamamlandığında `config/config.php`, `config/database.php` ve `config/install.lock` otomatik oluşturulur. Bu dosyalar ortamınıza özeldir; depoda veya temiz kurulum paketinde bulunmamalıdır.
+Kurulum, yeni veritabanı oluşturmaya çalışmaz; yalnızca önceden oluşturulmuş bir veritabanına bağlanır. Kurulum sonunda aşağıdaki ortam dosyaları oluşturulur:
 
-> Kurulum işlemi hedef veritabanındaki sistem tablolarını yeniden oluşturabilir. Canlı bir kurulum üzerinde işlem yapmadan önce mutlaka yedek alın.
+```text
+config/config.php
+config/database.php
+config/install.lock
+```
 
-### Demo kurulum paketi
+Bu dosyalar sunucuya özeldir. Temiz kurulum paketine ve Git deposuna eklenmemelidir.
 
-`okculuk-ligi-demo-kurulum.zip` paketi, kurulum sırasında örnek organizasyonlar, takımlar, sporcular, görseller ve sonuçlanmış karşılaşmalar üretir. Normal paket temiz kurulum içindir.
+> Uyarı: `install.php`, seçtiğiniz veritabanındaki uygulama tablolarını oluşturur veya yeniden düzenler. Canlı veritabanında işlem yapmadan önce yedek alın.
 
-Kurulum ekranında belirlediğiniz yönetici kullanıcı adı ve parolası kullanılır. Demo içerikte ek örnek hesaplar da oluşturulabilir; canlı kullanıma geçmeden önce tüm örnek hesapları gözden geçirip parolalarını değiştirin.
+## Paket türleri
 
-## Roller ve erişimler
-
-| Rol | Yetkiler |
+| Paket | Kullanım amacı |
 | --- | --- |
-| Yönetici | Tüm organizasyonları, içerikleri, kullanıcıları ve sistem ayarlarını yönetir. |
-| Hakem | Kendisine tanımlı alanlarda karşılaşmaları görür ve set skorlarını girer. |
-| Yetkili – Yönetici | En fazla iki takım oluşturabilir; kendi takımlarını ve sporcularını yönetebilir. |
-| Yetkili – Antrenör | Yetki tanımına uygun kendi takımının sporcu işlemlerini yürütür. |
-| Sporcu | Kendi hesabı ve profil bilgilerine erişir. |
-| Üye | Takım ve sporcuları favorilerine ekleyip takip eder. |
+| `okculuk-ligi-kurulum.zip` | Temiz kurulum; demo veri içermez. |
+| `okculuk-ligi-demo-kurulum.zip` | Kurulum sonrası örnek sezon, ligler, takımlar, sporcular, görseller ve sonuçlanmış karşılaşmalar üretir. |
 
-Yönetim panelindeki menüler giriş yapan kullanıcının rolüne göre otomatik sınırlandırılır.
+Demo paketi yalnızca deneme ve sunum içindir. Canlı kullanıma geçmeden önce örnek hesapları, parolaları ve içerikleri gözden geçirin.
 
-## Temel kullanım akışı
+## Roller ve yetkiler
 
-1. Yönetici panelinden sezonu oluşturun veya aktif sezonu seçin.
-2. Lig ya da turnuva oluşturun; türünü takım veya bireysel olarak belirleyin.
-3. Lig gruplarını tanımlayın. Bireysel Bölge Liglerinde bölge ve sporcu kategorisini eşleştirin.
-4. Takım, sporcu, hakem ve yetkili kayıtlarını ekleyin.
-5. Katılımcıları ilgili organizasyonlara kaydedin.
-6. Ligler için fikstürü, turnuvalar için eşleşme ağacını oluşturun.
-7. Hakem hesabıyla set sonuçlarını girin.
-8. Sonuçları, puan durumunu, sporcu/takım kartlarını ve sezon arşivini siteden takip edin.
+| Rol | Erişim kapsamı |
+| --- | --- |
+| Tam Yönetici | Sistemin tüm alanları, içerikler, kullanıcılar ve sınırlı yönetici hesapları |
+| Sınırlı Yönetici | Organizasyon Yönetimi ve Katılımcılar alanları; duyurular, haberler, yönetmelikler ve kurumsal sayfalara erişemez |
+| Hakem | Karşılaşmalar, Skor Girişi ve profil |
+| Takım Yetkilisi – Yönetici | En fazla iki kendi takımını ve kendi takım sporcularını yönetir |
+| Takım Yetkilisi – Antrenör | Kendi takımı için sporcu işlemleri yapar |
+| Sporcu | Kendi profil ve hesap bilgileri |
+| Üye | Profil, favori takım ve sporcu takibi |
+
+Sınırlı yönetici hesapları yalnızca tam yönetici tarafından **Yöneticiler** ekranından oluşturulur.
+
+## Yönetim akışı
+
+1. **Ligler ve Sezon** sayfasından sezonu oluşturun veya aktif sezonu seçin.
+2. Takım Ligi ya da Bireysel Bölge Ligleri oluşturun.
+3. **Gruplar ve Fikstür** ekranından grup ekleyin.
+   - Takım grubu: Bölge adı ve Takım Ligi seçimi
+   - Bireysel grup: Bölge adı, Bireysel Lig, kategori ve atış alanı
+4. Takımları, sporcuları, hakemleri ve takım yetkililerini ekleyin.
+5. Sporcuları uygun bireysel grup veya turnuvalara kaydedin.
+6. Lig fikstürünü ya da turnuva ağacını oluşturun.
+7. Skor Girişi ekranından set ya da bireysel haftalık atış puanlarını girin.
+8. Sonuçları, puan tablolarını, kartları ve sezon arşivini siteden takip edin.
+
+## Önemli sayfalar
+
+| Sayfa | Açıklama |
+| --- | --- |
+| `admin/ligler.php` | Sezon, lig ve kadro dönemi yönetimi |
+| `admin/gruplar-ve-fikstur.php` | Takım/bireysel grup ve lig fikstürü yönetimi |
+| `admin/turnuvalar.php` | Turnuva oluşturma, katılımcı yerleşimi ve ağaç işlemleri |
+| `admin/maclar.php` | Karşılaşma ve atış planı yönetimi |
+| `admin/mac-skor.php` | Takım karşılaşması ve bireysel lig skor giriş seçimi |
+| `admin/bireysel-skor.php` | Bireysel grup haftalık atış puanı girişi |
+| `admin/sporcular.php` | Sporcu, kategori, organizasyon ve hesap yönetimi |
+| `admin/takimlar.php` | Takım ve logo yönetimi |
+| `admin/yoneticiler.php` | Sınırlı yönetici hesapları (yalnızca tam yönetici) |
+| `admin/sayfalar.php` | Hakkımızda, İletişim ve Destekleyenler içerikleri |
+| `sonuclar.php` | Lig ve turnuva sonuçları, lig/grup/kategori filtreleri |
+| `arsiv.php` | Resmileştirilmiş sezon sonuçları |
+
+`admin/gruplar.php` eski adresi korunur ancak otomatik olarak `admin/gruplar-ve-fikstur.php` sayfasına yönlenir.
 
 ## Dizin yapısı
 
 ```text
 okculuk-ligi/
 ├── admin/                  # Rol bazlı yönetim paneli
-├── assets/                 # CSS, JavaScript, logo ve yüklenen görseller
-├── config/                 # Kurulumdan sonra oluşan ortam yapılandırması
-├── includes/               # Ortak fonksiyonlar, header, footer ve sidebar
-├── tools/                  # Demo kurulum ve yardımcı araçlar
+├── assets/                 # Stil, betik, logo ve yüklenen görseller
+├── config/                 # Kurulum sonrası oluşan sunucu yapılandırması
+├── includes/               # Ortak fonksiyonlar ve sayfa parçaları
+├── sql/                    # Başlangıç veritabanı şeması
+├── tools/                  # Demo kurulum aracı ve yardımcı dosyalar
 ├── install.php             # Kurulum sihirbazı
 ├── index.php               # Ana sayfa
-├── ligler.php              # Lig listesi
-├── turnuvalar.php          # Turnuva listesi
-├── fikstur.php             # Fikstür ve filtreleme ekranı
+├── fikstur.php             # Fikstür ekranı
 ├── sonuclar.php            # Karşılaşma sonuçları
-├── takimlar.php            # Takım listesi ve filtreler
-├── sporcular.php           # Sporcu listesi ve filtreler
+├── takimlar.php            # Takım listesi
+├── sporcular.php           # Sporcu listesi
 └── README.md
 ```
 
-## Önemli sayfalar
-
-| Alan | Açıklama |
-| --- | --- |
-| `admin/ligler.php` | Sezon ve lig yönetimi |
-| `admin/turnuvalar.php` | Turnuva, katılımcı ve eşleşme yönetimi |
-| `admin/gruplar.php` | Grup, kategori ve fikstür işlemleri |
-| `admin/maclar.php` | Karşılaşmaları filtreleme ve planlama |
-| `admin/mac-skor.php` | Takım karşılaşmaları için set puanı girişi |
-| `admin/turnuva-skor.php` | Turnuva karşılaşmalarının skor işlemleri |
-| `admin/sporcular.php` | Sporcu, katılım ve giriş bilgileri |
-| `admin/uyeler.php` | Üye hesapları yönetimi |
-| `arsiv.php` | Resmileşmiş sezon sonuçları |
-
 ## Güvenlik ve canlı ortam notları
 
-- Kurulum tamamlandıktan sonra `install.lock` dosyasını silmeyin.
-- Yönetici ve örnek kullanıcı parolalarını ilk fırsatta değiştirin.
-- `assets/uploads/` yalnızca uygulamanın yazabildiği kadar izinle yapılandırılmalıdır; herkese açık yazma izni vermeyin.
-- Canlıya almadan önce HTTPS kullanın, veritabanını düzenli yedekleyin ve PHP hata gösterimini kapatın.
-- `config/` altındaki veritabanı bilgilerini GitHub’a yüklemeyin.
+- Kurulumdan sonra `config/install.lock` dosyasını silmeyin.
+- İlk yönetici ve demo hesaplarının parolalarını değiştirin.
+- `assets/uploads/` klasörünü yalnızca uygulamanın yazabileceği izinlerle yapılandırın.
+- Canlı ortamda HTTPS kullanın.
+- Veritabanını düzenli olarak yedekleyin.
+- PHP hata gösterimini canlı ortamda kapatın.
+- `config/` altındaki veritabanı bilgilerini asla GitHub’a yüklemeyin.
 
 ## Sorun giderme
 
 | Sorun | Kontrol edilmesi gerekenler |
 | --- | --- |
-| Veritabanı bağlantısı kurulamıyor | `config/database.php` bilgileri, veritabanı kullanıcısının yetkileri ve `pdo_mysql` eklentisi |
-| Kurulum tekrar açılmıyor | `config/install.lock` dosyası kurulumun tamamlandığını gösterir; canlı veriler varken silmeyin |
-| Görseller görünmüyor | `assets/uploads/` yazma izni, dosya yolu ve sunucunun dosya erişim izinleri |
-| Mobil menü sorunlu | Tarayıcı önbelleğini temizleyin; güncel `assets/css/mobile-menu.css` ve `assets/js/mobile-menu.js` dosyalarının yüklendiğini doğrulayın |
+| Veritabanı bağlantısı kurulamıyor | Veritabanı bilgileri, kullanıcı yetkileri ve `pdo_mysql` eklentisi |
+| Kurulum tekrar açılmıyor | `config/install.lock` dosyası; canlı veriler varken silmeyin |
+| Görseller görünmüyor | `assets/uploads/` izinleri, dosya yolu ve sunucu erişim izinleri |
+| Bireysel sporcu grubu seçilemiyor | Sporcu kategorisi ile grup kategorisinin aynı olduğunu kontrol edin |
+| Mobil menü sorunlu | Tarayıcı önbelleğini temizleyin ve güncel stil/betik dosyalarının yüklendiğini doğrulayın |
 | Türkçe karakterler bozuk | Veritabanı ve bağlantının `utf8mb4` kullandığını doğrulayın |
 
 ## Lisans
 
-Bu proje, **GNU General Public License v3.0 (GPL-3.0)** ile lisanslanmıştır. Ayrıntılı koşullar için [LICENSE](LICENSE) dosyasına bakın.
+Bu proje, [GNU General Public License v3.0](LICENSE) ile lisanslanmıştır.
 
 Telif hakkı © 2026 **Sencer BALCIOĞLU**. Sistemin ilk sürümü Sencer BALCIOĞLU tarafından geliştirilmiştir.
 
-GPL-3.0; sistemin kullanılmasına, incelenmesine, değiştirilmesine, dağıtılmasına ve ücretli hizmet kapsamında sunulmasına izin verir. Ancak projeyi veya değiştirilmiş bir sürümünü dağıtan kişiler, karşılık gelen kaynak kodunu da GPL-3.0 koşullarıyla erişilebilir tutmalıdır.
+GPL-3.0; sistemin kullanılmasına, incelenmesine, değiştirilmesine, dağıtılmasına ve ücretli hizmet kapsamında sunulmasına izin verir. Projeyi veya değiştirilmiş bir sürümünü dağıtanlar, ilgili kaynak kodunu da GPL-3.0 koşullarıyla erişilebilir tutmalıdır.
