@@ -49,7 +49,8 @@ ob_start();
     <?php if ($duzenlenen): ?><input type="hidden" name="id" value="<?= (int)$duzenlenen['id'] ?>">
         <input type="hidden" name="mevcut_gorsel" value="<?= e($duzenlenen['gorsel'] ?? '') ?>"><?php endif; ?>
     <label>Başlık *<input type="text" name="baslik" required value="<?= e($duzenlenen['baslik'] ?? '') ?>"></label>
-    <label>İçerik *<textarea name="icerik" rows="14" class="editor"><?= e($duzenlenen['icerik'] ?? '') ?></textarea></label>
+    <label>İçerik *</label>
+    <?= html_editor_alani('icerik', 'yonetmelikEditor', $duzenlenen['icerik'] ?? '') ?>
     <div class="grid-2">
         <label>Görsel<input type="file" name="gorsel" accept="image/*"></label>
         <label class="check-line"><input type="checkbox" name="yayinda" value="1" <?= (!$duzenlenen || $duzenlenen['yayinda'])?'checked':'' ?>> Yayında</label>

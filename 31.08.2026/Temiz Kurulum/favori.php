@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf'] ?? '')) 
 }
 $tur = $_POST['tur'] ?? '';
 $hedef = (int)($_POST['hedef_id'] ?? 0);
-$donus = $_POST['donus'] ?? BASE_URL . '/index.php';
+$donus = guvenli_donus_url($_POST['donus'] ?? '');
 if (!in_array($tur, ['takim','sporcu'], true) || $hedef < 1) { flash_set('hata','Geçersiz favori.'); redirect($donus); }
 $tablo = $tur === 'takim' ? 'takimlar' : 'sporcular';
 $st = $pdo->prepare("SELECT id FROM {$tablo} WHERE id=?"); $st->execute([$hedef]);

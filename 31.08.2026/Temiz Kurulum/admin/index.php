@@ -6,8 +6,12 @@ require_once __DIR__ . '/../includes/functions.php';
  * Admin Panosu
  */
 $u = kullanici_bilgi();
-if (($u['rol'] ?? '') !== 'admin') {
+if (!in_array(($u['rol'] ?? ''), ['admin','yonetici'], true)) {
     $hedef = ['yetkili'=>'sporcular.php','hakem'=>'maclar.php','sporcu'=>'profil.php'][$u['rol'] ?? ''] ?? 'profil.php';
+    if (($u['rol'] ?? '') === 'yetkili') {
+        $kontrol=$pdo->prepare('SELECT takim_id FROM yetkili WHERE user_id=?');$kontrol->execute([$u['id']]);
+        if (!(int)$kontrol->fetchColumn()) { flash_set('hata','Hesabınıza henüz bir takım atanmamış. Yönetici ile iletişime geçin.'); $hedef='profil.php'; }
+    }
     redirect(BASE_URL.'/admin/'.$hedef);
 }
 
@@ -46,16 +50,16 @@ ob_start();
     <a href="<?= BASE_URL ?>/admin/yonetmelikler.php" class="kpi-tile kpi-blue">
         <span>Yönetmelikler</span><strong><?= $sayilar['yonetmelik'] ?></strong>
     </a>
-    <a href="<?= BASE_URL ?>/admin/gruplar.php" class="kpi-tile kpi-purple">
+    <a href="<?= BASE_URL ?>/admin/gruplar-ve-fikstur.php" class="kpi-tile kpi-purple">
         <span>Gruplar</span><strong><?= $sayilar['gruplar'] ?></strong>
     </a>
     <a href="<?= BASE_URL ?>/admin/takimlar.php" class="kpi-tile kpi-purple">
         <span>Takımlar</span><strong><?= $sayilar['takimlar'] ?></strong>
     </a>
-    <a href="<?= BASE_URL ?>admin/sporcular.php" class="kpi-tile kpi-purple">
+    <a href="<?= BASE_URL ?>/admin/sporcular.php" class="kpi-tile kpi-purple">
         <span>Sporcular</span><strong><?= $sayilar['sporcular'] ?></strong>
     </a>
-    <a href="<?= BASE_URL ?>admin/hakemler.php" class="kpi-tile kpi-green">
+    <a href="<?= BASE_URL ?>/admin/hakemler.php" class="kpi-tile kpi-green">
         <span>Hakemler</span><strong><?= $sayilar['hakemler'] ?></strong>
     </a>
     <a href="<?= BASE_URL ?>/admin/yetkili.php" class="kpi-tile kpi-green">

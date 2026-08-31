@@ -1,182 +1,25 @@
 <?php
-/**
- * Sporcular Listesi - Grup ve Takım Filtreli, Sıralama Seçenekli
- */
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/includes/functions.php';
-
-$sayfa_baslik = 'Sporcular';
-$aktif = 'sporcular';
-require_once __DIR__ . '/includes/header.php';
-
-// Filtre ve sıralama parametreleri
-$grup_id = isset($_GET['grup']) ? (int)$_GET['grup'] : 0;
-$takim_id = isset($_GET['takim']) ? (int)$_GET['takim'] : 0;
-$sirala = isset($_GET['sirala']) ? $_GET['sirala'] : 'soyad';
-$yön = isset($_GET['yön']) && $_GET['yön'] === 'desc' ? 'DESC' : 'ASC';
-
-// İzin verilen sıralama sütunları (whitelist)
-$izinli_sirala = [
-    'ad'           => 'Ad',
-    'soyad'        => 'Soyad',
-    'takim_adi'    => 'Takım',
-    'grup_adi'     => 'Grup',
-    'toplam_puan'  => 'Toplam Puan',
-    'atis_sayisi'  => 'Atış Sayısı',
-    'ortalama'     => 'Ortalama'
-];
-if (!array_key_exists($sirala, $izinli_sirala)) {
-    $sirala = 'soyad';
+require_once __DIR__.'/config/config.php';require_once __DIR__.'/config/database.php';require_once __DIR__.'/includes/functions.php';
+$ligler=$pdo->query('SELECT id,lig_adi,tur FROM ligler WHERE aktif=1 ORDER BY lig_adi')->fetchAll();$turnuvalar=$pdo->query('SELECT id,turnuva_adi,tur FROM turnuvalar ORDER BY turnuva_adi')->fetchAll();
+$secenekler=['tum'=>['tip'=>'tum','id'=>0,'tur'=>null]];foreach($ligler as $x)$secenekler['lig:'.$x['id']]=['tip'=>'lig','id'=>(int)$x['id'],'tur'=>$x['tur']];foreach($turnuvalar as $x)$secenekler['turnuva:'.$x['id']]=['tip'=>'turnuva','id'=>(int)$x['id'],'tur'=>$x['tur']];
+$kaynak=$_GET['kaynak']??'tum';if(!isset($secenekler[$kaynak]))$kaynak='tum';$secili=$secenekler[$kaynak];$gruplar=[];$grupId=0;$takimlar=[];$takimId=0;
+if($secili['tip']==='lig'){$st=$pdo->prepare('SELECT id,grup_adi FROM gruplar WHERE lig_id=? ORDER BY grup_adi');$st->execute([$secili['id']]);$gruplar=$st->fetchAll();$gecerli=array_map(fn($g)=>(int)$g['id'],$gruplar);$grupId=(int)($_GET['grup']??0);if($grupId&&!in_array($grupId,$gecerli,true))$grupId=0;}
+if($secili['tip']==='lig'&&$secili['tur']==='takim'){$st=$pdo->prepare('SELECT t.id,t.takim_adi FROM takimlar t JOIN gruplar g ON g.id=t.grup_id WHERE g.lig_id=? AND (?=0 OR g.id=?) ORDER BY t.takim_adi');$st->execute([$secili['id'],$grupId,$grupId]);$takimlar=$st->fetchAll();}
+$gecerliTakim=array_map(fn($t)=>(int)$t['id'],$takimlar);$takimId=(int)($_GET['takim']??0);if($takimId&&!in_array($takimId,$gecerliTakim,true))$takimId=0;
+$sql="SELECT s.*,t.takim_adi,g.grup_adi,l.lig_adi FROM sporcular s LEFT JOIN takimlar t ON t.id=s.takim_id LEFT JOIN gruplar g ON g.id=t.grup_id LEFT JOIN ligler l ON l.id=g.lig_id WHERE 1=1";$p=[];
+if($secili['tip']==='lig'){
+    if($secili['tur']==='takim'){$sql.=' AND l.id=?';$p[]=$secili['id'];if($grupId){$sql.=' AND g.id=?';$p[]=$grupId;}if($takimId){$sql.=' AND s.takim_id=?';$p[]=$takimId;}}
+    else {$sql.=' AND EXISTS(SELECT 1 FROM bireysel_lig_kayitlari k WHERE k.lig_id=? AND k.sporcu_id=s.id';$p[]=$secili['id'];if($grupId){$sql.=' AND k.grup_id=?';$p[]=$grupId;}$sql.=')';}
+} elseif($secili['tip']==='turnuva'){
+    if($secili['tur']==='bireysel'){$sql.=' AND EXISTS(SELECT 1 FROM turnuva_katilimcilari k WHERE k.turnuva_id=? AND k.hedef_id=s.id)';$p[]=$secili['id'];}
+    else {$sql.=' AND EXISTS(SELECT 1 FROM turnuva_katilimcilari k WHERE k.turnuva_id=? AND k.hedef_id=s.takim_id)';$p[]=$secili['id'];}
 }
-
-// Grupları çek (filtreleme için)
-$gruplar = $pdo->query("SELECT id, grup_adi FROM gruplar ORDER BY grup_adi")->fetchAll();
-
-// Takımları çek (tümü, sonra grup seçimine göre filtreleme yapılacak)
-$takim_sql = "SELECT id, takim_adi, grup_id FROM takimlar ORDER BY takim_adi";
-$takimlar = $pdo->query($takim_sql)->fetchAll();
-
-// Eğer grup seçiliyse, takım listesini o gruba göre filtrele
-$takim_filtreli = $takimlar;
-if ($grup_id > 0) {
-    $takim_filtreli = array_filter($takimlar, function($t) use ($grup_id) {
-        return $t['grup_id'] == $grup_id;
-    });
-}
-
-// Sporcu sorgusu
-$sql = "
-    SELECT s.*, 
-           t.takim_adi, 
-           g.grup_adi,
-           COALESCE(t.takim_adi, 'Takım Yok') AS takim_gosterim
-    FROM sporcular s
-    LEFT JOIN takimlar t ON t.id = s.takim_id
-    LEFT JOIN gruplar g ON g.id = t.grup_id
-    WHERE 1=1
-";
-$params = [];
-
-if ($grup_id > 0) {
-    $sql .= " AND (t.grup_id = ? OR (s.takim_id IS NULL AND ? = 0))";
-    $params[] = $grup_id;
-    $params[] = $grup_id; // takımı olmayanlar için grup filtresini görmezden gelmek istiyorsak, ama şimdilik sadece o gruba ait takımları göster
-    // Daha doğrusu: takımı olmayanlar her durumda gelsin istiyorsak:
-    // $sql .= " AND (t.grup_id = ? OR s.takim_id IS NULL)";
-    // ama bu durumda "Tüm Gruplar" seçeneğinde takımı olmayanlar gelir, grup seçildiğinde de gelir. Karar verelim.
-    // Kullanıcı grup seçtiğinde sadece o grubun takımlarındaki sporcuları görmek isteyebilir, takımı olmayanları da göstermek isteyebilir.
-    // Daha basit: grup filtrelemesinde takımı olmayanları dahil etme, çünkü grupları yok.
-    // O yüzden yukarıdaki gibi bırakalım, sadece t.grup_id = ? ile filtreleyelim.
-    // Eğer takımı olmayanlar da gelsin istenirse ayrıca koşul eklenebilir.
-}
-
-if ($takim_id > 0) {
-    $sql .= " AND s.takim_id = ?";
-    $params[] = $takim_id;
-}
-
-// Sıralama
-switch ($sirala) {
-    case 'ortalama':
-        $sql .= " ORDER BY (s.toplam_puan / NULLIF(s.atis_sayisi, 0)) " . $yön;
-        break;
-    case 'takim_adi':
-        $sql .= " ORDER BY t.takim_adi " . $yön . ", s.soyad ASC";
-        break;
-    case 'grup_adi':
-        $sql .= " ORDER BY g.grup_adi " . $yön . ", s.soyad ASC";
-        break;
-    default:
-        $sql .= " ORDER BY s." . $sirala . " " . $yön;
-        break;
-}
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$sporcular = $stmt->fetchAll();
-
-// Sıralama bağlantıları için yardımcı fonksiyon
-function sirala_link($sutun, $mevcut, $yön, $grup_id, $takim_id) {
-    $yeni_yön = 'asc';
-    if ($sutun === $mevcut) {
-        $yeni_yön = $yön === 'ASC' ? 'desc' : 'asc';
-    }
-    return "?grup=" . $grup_id . "&takim=" . $takim_id . "&sirala=" . $sutun . "&yön=" . $yeni_yön;
-}
+$sql.=' ORDER BY s.ad,s.soyad';$st=$pdo->prepare($sql);$st->execute($p);$sporcular=$st->fetchAll();
+$sayfa_baslik='Sporcular';$aktif='sporcular';require __DIR__.'/includes/header.php';
 ?>
-<main class="main-content">
-<div class="container">
-    <h1>Sporcular</h1>
-
-    <!-- Filtre Formu -->
-    <form method="get" class="form" style="margin-bottom:20px;">
-        <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-            <label style="display:flex; flex-direction:column; gap:4px;">
-                Grup
-                <select name="grup" onchange="this.form.submit()">
-                    <option value="0">— Tüm Gruplar —</option>
-                    <?php foreach ($gruplar as $g): ?>
-                        <option value="<?= (int)$g['id'] ?>" <?= $grup_id === (int)$g['id'] ? 'selected' : '' ?>>
-                            <?= e($g['grup_adi']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label style="display:flex; flex-direction:column; gap:4px;">
-                Takım
-                <select name="takim" onchange="this.form.submit()">
-                    <option value="0">— Tüm Takımlar —</option>
-                    <?php foreach ($takim_filtreli as $t): ?>
-                        <option value="<?= (int)$t['id'] ?>" <?= $takim_id === (int)$t['id'] ? 'selected' : '' ?>>
-                            <?= e($t['takim_adi']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <noscript>
-                <button class="btn btn-primary">Filtrele</button>
-            </noscript>
-        </div>
-    </form>
-
-    <?php if (empty($sporcular)): ?>
-        <p>Henüz sporcu bulunmuyor.</p>
-    <?php else: ?>
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th><a href="<?= sirala_link('ad', $sirala, $yön, $grup_id, $takim_id) ?>">Ad <?= $sirala==='ad' ? ($yön==='ASC' ? '↑' : '↓') : '' ?></a></th>
-                        <th><a href="<?= sirala_link('soyad', $sirala, $yön, $grup_id, $takim_id) ?>">Soyad <?= $sirala==='soyad' ? ($yön==='ASC' ? '↑' : '↓') : '' ?></a></th>
-                        <th><a href="<?= sirala_link('takim_adi', $sirala, $yön, $grup_id, $takim_id) ?>">Takım <?= $sirala==='takim_adi' ? ($yön==='ASC' ? '↑' : '↓') : '' ?></a></th>
-                        <th><a href="<?= sirala_link('grup_adi', $sirala, $yön, $grup_id, $takim_id) ?>">Grup <?= $sirala==='grup_adi' ? ($yön==='ASC' ? '↑' : '↓') : '' ?></a></th>
-                        <th><a href="<?= sirala_link('toplam_puan', $sirala, $yön, $grup_id, $takim_id) ?>">Puan <?= $sirala==='toplam_puan' ? ($yön==='ASC' ? '↑' : '↓') : '' ?></a></th>
-                        <th><a href="<?= sirala_link('atis_sayisi', $sirala, $yön, $grup_id, $takim_id) ?>">Atış <?= $sirala==='atis_sayisi' ? ($yön==='ASC' ? '↑' : '↓') : '' ?></a></th>
-                        <th><a href="<?= sirala_link('ortalama', $sirala, $yön, $grup_id, $takim_id) ?>">Ort. <?= $sirala==='ortalama' ? ($yön==='ASC' ? '↑' : '↓') : '' ?></a></th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php $i = 1; foreach ($sporcular as $s): 
-                    $ort = $s['atis_sayisi'] > 0 ? round($s['toplam_puan'] / $s['atis_sayisi'], 2) : 0;
-                ?>
-                    <tr>
-                        <td><?= $i++ ?></td>
-                        <td><a href="<?= BASE_URL ?>/sporcu.php?id=<?= (int)$s['id'] ?>"><?= e($s['ad']) ?></a></td>
-                        <td><a href="<?= BASE_URL ?>/sporcu.php?id=<?= (int)$s['id'] ?>"><?= e($s['soyad']) ?></a></td>
-                        <td><?= e($s['takim_gosterim'] ?? '-') ?></td>
-                        <td><?= e($s['grup_adi'] ?? '-') ?></td>
-                        <td><?= (int)$s['toplam_puan'] ?></td>
-                        <td><?= (int)$s['atis_sayisi'] ?></td>
-                        <td><?= $ort ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php endif; ?>
-</div>
-</main>
-<?php require_once __DIR__ . '/includes/sidebar.php'; ?>
-<?php require_once __DIR__ . '/includes/footer.php'; ?>
+<main class="main-content"><section class="page-heading"><span class="eyebrow">SPORCULAR</span><h1>Sporcular</h1><p>Lig veya turnuva, grup ve takım seçerek sporcuları filtreleyebilirsiniz.</p></section>
+<form method="get" class="card form"><div class="grid-3"><label>Lig / Turnuva<select name="kaynak" onchange="this.form.submit()"><option value="tum" <?= $kaynak==='tum'?'selected':'' ?>>Tümü</option><?php if($ligler):?><optgroup label="Ligler"><?php foreach($ligler as $x):?><option value="lig:<?= (int)$x['id'] ?>" <?= $kaynak==='lig:'.$x['id']?'selected':'' ?>><?= e($x['lig_adi']) ?><?= $x['tur']==='bireysel'?' · Bireysel':'' ?></option><?php endforeach;?></optgroup><?php endif;?><?php if($turnuvalar):?><optgroup label="Turnuvalar"><?php foreach($turnuvalar as $x):?><option value="turnuva:<?= (int)$x['id'] ?>" <?= $kaynak==='turnuva:'.$x['id']?'selected':'' ?>><?= e($x['turnuva_adi']) ?><?= $x['tur']==='bireysel'?' · Bireysel':'' ?></option><?php endforeach;?></optgroup><?php endif;?></select></label>
+<label>Grup<?php if($secili['tip']==='lig'):?><select name="grup" onchange="this.form.submit()"><option value="0">Tüm Gruplar</option><?php foreach($gruplar as $g):?><option value="<?= (int)$g['id'] ?>" <?= $grupId===(int)$g['id']?'selected':'' ?>><?= e($g['grup_adi']) ?></option><?php endforeach;?></select><?php else:?><input value="Tüm Gruplar" disabled><?php endif;?></label>
+<label>Takım<?php if($secili['tip']==='lig'&&$secili['tur']==='takim'):?><select name="takim" onchange="this.form.submit()"><option value="0">Tüm Takımlar</option><?php foreach($takimlar as $t):?><option value="<?= (int)$t['id'] ?>" <?= $takimId===(int)$t['id']?'selected':'' ?>><?= e($t['takim_adi']) ?></option><?php endforeach;?></select><?php else:?><input value="Tüm Takımlar" disabled><?php endif;?></label></div><noscript><div class="form-actions"><button class="btn btn-primary">Filtrele</button></div></noscript></form>
+<section class="card table-card"><?php if(!$sporcular):?><p class="empty-state">Seçilen filtreye uygun sporcu bulunmuyor.</p><?php else:?><div class="table-wrap"><table class="data-table"><thead><tr><th>Sporcu</th><th>Kategori</th><th>Takım</th><th>Lig</th><th>Grup</th><th>Puan</th><th>Atış</th><th>Ort.</th></tr></thead><tbody><?php foreach($sporcular as $s):$ort=$s['atis_sayisi']?(number_format($s['toplam_puan']/$s['atis_sayisi'],2,',','.')):'0,00';?><tr><td><a href="<?= BASE_URL ?>/sporcu.php?id=<?= (int)$s['id'] ?>"><strong><?= e($s['ad'].' '.$s['soyad']) ?></strong></a></td><td><?= e($s['kategori']?:'-') ?></td><td><?php if($s['takim_id']):?><a href="<?= BASE_URL ?>/takim.php?id=<?= (int)$s['takim_id'] ?>"><?= e($s['takim_adi']) ?></a><?php else:?>Bağımsız<?php endif;?></td><td><?= e($s['lig_adi']?:'-') ?></td><td><?= e($s['grup_adi']?:'-') ?></td><td><?= (int)$s['toplam_puan'] ?></td><td><?= (int)$s['atis_sayisi'] ?></td><td><?= $ort ?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></section></main>
+<?php require __DIR__.'/includes/sidebar.php';require __DIR__.'/includes/footer.php'; ?>

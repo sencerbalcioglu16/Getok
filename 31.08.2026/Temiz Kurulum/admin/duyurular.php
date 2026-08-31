@@ -78,9 +78,8 @@ ob_start();
         <input type="hidden" name="mevcut_gorsel" value="<?= e($duzenlenen['gorsel'] ?? '') ?>">
     <?php endif; ?>
     <label>Başlık *<input type="text" name="baslik" required value="<?= e($duzenlenen['baslik'] ?? '') ?>"></label>
-    <label>İçerik * (HTML / metin editörü)
-        <textarea name="icerik" id="ed-duyuru" rows="12" class="editor"><?= e($duzenlenen['icerik'] ?? '') ?></textarea>
-    </label>
+    <label>İçerik *</label>
+    <?= html_editor_alani('icerik', 'duyuruEditor', $duzenlenen['icerik'] ?? '') ?>
     <label>YouTube / video bağlantısı (isteğe bağlı)
         <input type="url" name="medya_url" placeholder="https://www.youtube.com/watch?v=..." value="<?= e($duzenlenen['medya_url'] ?? '') ?>">
     </label>

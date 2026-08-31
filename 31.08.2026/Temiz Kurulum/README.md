@@ -1,196 +1,191 @@
-# 🎯 Okçuluk Amatör Ligi Yönetim Sistemi
+# Geleneksel Türk Okçuluğu Bölge Ligleri
 
-Kapsamlı bir PHP + MySQL spor ligi yönetim sistemi. 5 sporcu × 7 ok × 5 set
-kuralına göre karşılaşma yönetimi, puan durumu, averaj hesabı, fikstür
-oluşturma, üyelik ve admin paneli.
+Geleneksel Türk okçuluğu için geliştirilmiş, PHP ve MySQL tabanlı açık kaynaklı lig ve turnuva yönetim sistemidir. Takım Ligleri, Bireysel Bölge Ligleri, takım turnuvaları ve bireysel turnuvalar aynı uygulama içinde yönetilir.
 
-## 🚀 Hızlı Kurulum
+Sistem; sezon, grup, fikstür, karşılaşma, puan durumu, turnuva ağacı, sporcu ve takım kartları, kurumsal içerikler, duyurular ve rol bazlı yönetim panelini kapsar.
 
-1. **Dosyaları sunucuya yükle** (XAMPP / WAMP / Linux + Apache + PHP 7.4+ + MySQL).
-2. Tarayıcıdan `http://localhost/okculuk-ligi/install.php` adresine git.
-3. Veritabanı bilgilerini gir (sunucu, kullanıcı, parola) ve yönetici hesabı oluştur.
-4. "Kurulumu Başlat" butonuna tıkla. Sistem otomatik olarak:
-   - Veritabanını oluşturur
-   - Tüm tabloları kurar
-   - Örnek verileri yükler (2 grup, 12 takım, 60 sporcu, maçlar vb.)
-   - Admin şifresini bcrypt ile şifreler
-5. Ana sayfaya yönlendirilirsin.
+## Öne çıkan özellikler
 
-## 🔐 Varsayılan Girişler (Kurulum Sonrası)
+- Takım Ligi ve Bireysel Bölge Ligleri yönetimi
+- Takım ve bireysel turnuvalar için 16/32 katılımcılı eşleşme ağacı
+- A–C ve B–D sıralamasına göre otomatik ilk tur eşleşmeleri
+- Sezon oluşturma, aktif sezon yönetimi, sezon kapanışı ve resmî sonuç arşivi
+- Takım grupları ile bireysel bölge-kategori gruplarının bağımsız yönetimi
+- Takım ligleri için çift devreli otomatik fikstür
+- Bireysel ligler için grup bazlı, 10 haftalık atış fikstürü
+- Set bazlı karşılaşma skoru, eşitlik bozma ve canlı karşılaşma detayları
+- Bireysel atışlarda sporcu başına haftalık 0–21 puan girişi
+- Takım ve sporcu kartları, profil fotoğrafı ve takım logosu yükleme
+- Favori takım ve sporcu takibi
+- Lig, grup, kategori ve sonuç filtreleri
+- Puan durumu tablolarında sütun bazlı artan/azalan sıralama
+- Duyuru, haber, yönetmelik ve kurumsal içerik yönetimi
+- Mobil uyumlu ana menü ve yönetim paneli
 
-| Rol      | Kullanıcı Adı | Şifre       |
-|----------|----------------|-------------|
-| Yönetici | `admin`        | `admin123`  |
-| Hakem    | `hakem1`       | `hakem123`  |
-| Yetkili  | `yetkili1`     | `yetkili123`|
-| Sporcu   | `sporcu1`      | `sporcu123` |
+## Organizasyon türleri
 
-> **ÖNEMLİ:** İlk girişten sonra bu şifreleri değiştirin!
+| Tür | Katılımcı | Temel yapı |
+| --- | --- | --- |
+| Takım Ligi | Takımlar | Grup, haftalık fikstür ve puan durumu |
+| Bireysel Bölge Ligleri | Sporcular | Bölge + kategori grubu, haftalık atış puanı |
+| Takım Turnuvası | Takımlar | 16 veya 32 katılımcı, eleme ağacı |
+| Bireysel Turnuva | Sporcular | 16 veya 32 katılımcı, eleme ağacı |
 
-## 📁 Klasör Yapısı
+## Kategoriler ve puanlama
 
-```
-Minimax4/
-├── install.php              ← Kurulum sihirbazı (ilk çalıştırma)
-├── index.php                ← Ana sayfa
-├── login.php / register.php / logout.php
-├── gruplar.php / grup.php   ← Grup listesi ve fikstür
-├── takimlar.php / takim.php ← Takım listesi ve detay
-├── sporcular.php / sporcu.php
-├── haberler.php / duyurular.php / yonetmelik.php
-│
-├── admin/                   ← Yönetim paneli
-│   ├── partials/layout.php  ← Sidebar + üst bar
-│   ├── index.php            ← Pano
-│   ├── duyurular.php
-│   ├── haberler.php
-│   ├── yonetmelikler.php
-│   ├── gruplar.php          ← Fikstür oluşturma
-│   ├── takimlar.php
-│   ├── sporcular.php
-│   ├── hakemler.php
-│   ├── yetkili.php
-│   ├── maclar.php
-│   ├── mac-skor.php         ← ⭐ Hakem skor girişi (5×7×5 matris)
-│   └── profil.php
-│
-├── config/
-│   ├── config.php           ← Otomatik üretilir
-│   ├── database.php         ← Otomatik üretilir
-│   └── install.lock         ← Kurulum tamamlandı işareti
-│
-├── includes/
-│   ├── header.php / footer.php
-│   └── functions.php        ← Tüm yardımcı fonksiyonlar
-│
-├── sql/install.sql          ← Şema + örnek veri
-│
-└── assets/
-    ├── css/style.css
-    ├── js/main.js
-    └── uploads/             ← Yüklenen görseller (klasör)
-```
+### Sporcu kategorileri
 
-## 🏆 Lig Kuralları (Kodda Uygulanmıştır)
+Sporcu kaydında kategori, doğum tarihi ve cinsiyete göre otomatik hesaplanır:
 
-1. Her takım **5 sporcu** ile yarışır.
-2. Her sporcu bir sette **7 ok** atar.
-3. Karşılaşma **5 set** üzerinden oynanır.
-4. Her set kazananı = 5 sporcunun 7'şer okunun toplam puanı.
-5. **En çok set kazanan** takım maçı kazanır.
-6. Puan durumu sıralaması:
-   - **Birincil:** Kazanılan toplam set sayısı
-   - **Eşitlik bozucu:** Averaj (tüm atışlardan alınan toplam puan)
-7. Bir ok en fazla **10 puan** (Olimpiyat standardı).
+| Koşul | Kategori |
+| --- | --- |
+| 8–11 yaş | Minikler |
+| 12–15 yaş | Yıldızlar |
+| 16–17 yaş | Gençler |
+| 18 yaş ve üzeri erkek | Yetişkin |
+| 18 yaş ve üzeri kadın | Kadınlar |
 
-## 🗃 Veritabanı Tabloları
+Bireysel lig grupları yalnızca aynı kategorideki sporcuları kabul eder. Örneğin “Marmara Bölgesi > Kadınlar” grubuna yalnızca Kadınlar kategorisindeki sporcular kaydedilebilir.
 
-| Tablo               | Açıklama |
-|---------------------|----------|
-| `users`             | Tüm giriş yapabilen hesaplar (admin/hakem/sporcu/yetkili) |
-| `duyurular`         | Site duyuruları (görsel + metin editörü) |
-| `haberler`          | Haberler (görsel + metin editörü) |
-| `yonetmelikler`     | Yönetmelikler (görsel + metin editörü) |
-| `gruplar`           | Grup tanımları (her grup 6 takım) |
-| `takimlar`          | Takımlar (grup, puan durumu sütunlarıyla) |
-| `sporcular`         | Sporcular (puan durumu sütunlarıyla) |
-| `hakemler`          | Hakemler |
-| `yetkili`           | Antrenör / kulüp yöneticisi |
-| `maclar`            | Fikstür ve maç sonuçları |
-| `mac_setleri`       | Bir maçın 5 setinin takım toplamları |
-| `sporcu_set_atislari` | Her sporcunun her setteki 7 ok atışı |
+### Karşılaşma ve atış kuralları
 
-## 👥 Roller ve Yetkiler
+- Bir sporcu, bir sette 7 ok atar.
+- Bir sporcunun tek set puanı en fazla **21** olabilir.
+- Takım karşılaşmalarında set galibi, iki takımın o setteki sporcu puanlarının toplamıyla belirlenir.
+- Set eşit bitemez. Eşitlikte iki taraf için ayrı eşitlik bozma atışı girilir; galip belirlenene kadar devam edilir.
+- Eşitlik bozma puanları yalnızca set galibini belirler, sezonluk atış averajına eklenmez.
+- Takım Ligi sıralaması önce set puanına, ardından atış puanına göre yapılır.
+- Bireysel Bölge Ligleri, takım organizasyonlarından bağımsız toplam puan ve atış sayısı tutar.
 
-| Rol      | Yapabildikleri |
-|----------|----------------|
-| **Admin** | Her şey. Tüm CRUD işlemleri. |
-| **Hakem** | Maç skorlarını girer (`admin/mac-skor.php`). |
-| **Yetkili** | Kendi takımının sporcu listesini oluşturur/düzenler. |
-| **Sporcu** | Yalnızca kendi kişisel bilgilerini düzenler. |
+## Gereksinimler
 
-Yetki kontrolü her sayfada `zorunlu_rol(...)` ile yapılır. Yetkisiz erişimlerde 403 döner.
+- PHP 8.0 veya üzeri
+- MySQL 5.7+ ya da MariaDB 10.3+
+- Apache, Nginx veya PHP destekli eşdeğer bir web sunucusu
+- PHP `pdo_mysql` eklentisi
+- `assets/uploads/` klasörü için uygulamanın yazma izni
 
-## 📊 Puan Durumu Mantığı
+XAMPP kullanıyorsanız proje klasörünü `htdocs` altına yerleştirmeniz yeterlidir.
 
-**Grup / Takım Puan Durumu:**
-```sql
-ORDER BY toplam_set DESC, toplam_puan DESC
+## Kurulum
+
+1. Paketi web sunucunuzun yayın klasörüne çıkarın.
+2. Hosting panelinizden boş bir MySQL veritabanı ve bu veritabanına yetkili kullanıcı oluşturun.
+3. Tarayıcıdan `https://alanadiniz.com/proje-klasoru/install.php` adresini açın.
+4. Veritabanı bilgilerini ve ilk tam yönetici hesabını girin.
+5. Kurulum tamamlandıktan sonra giriş yapıp sezon ve organizasyonları oluşturun.
+
+Kurulum, yeni veritabanı oluşturmaya çalışmaz; yalnızca önceden oluşturulmuş bir veritabanına bağlanır. Kurulum sonunda aşağıdaki ortam dosyaları oluşturulur:
+
+```text
+config/config.php
+config/database.php
+config/install.lock
 ```
 
-**Sporcu Puan Durumu:**
-```sql
-ORDER BY toplam_puan DESC, atis_sayisi ASC
+Bu dosyalar sunucuya özeldir. Temiz kurulum paketine ve Git deposuna eklenmemelidir.
+
+> Uyarı: `install.php`, seçtiğiniz veritabanındaki uygulama tablolarını oluşturur veya yeniden düzenler. Canlı veritabanında işlem yapmadan önce yedek alın.
+
+## Paket türleri
+
+| Paket | Kullanım amacı |
+| --- | --- |
+| `okculuk-ligi-kurulum.zip` | Temiz kurulum; demo veri içermez. |
+| `okculuk-ligi-demo-kurulum.zip` | Kurulum sonrası örnek sezon, ligler, takımlar, sporcular, görseller ve sonuçlanmış karşılaşmalar üretir. |
+
+Demo paketi yalnızca deneme ve sunum içindir. Canlı kullanıma geçmeden önce örnek hesapları, parolaları ve içerikleri gözden geçirin.
+
+## Roller ve yetkiler
+
+| Rol | Erişim kapsamı |
+| --- | --- |
+| Tam Yönetici | Sistemin tüm alanları, içerikler, kullanıcılar ve sınırlı yönetici hesapları |
+| Sınırlı Yönetici | Organizasyon Yönetimi ve Katılımcılar alanları; duyurular, haberler, yönetmelikler ve kurumsal sayfalara erişemez |
+| Hakem | Karşılaşmalar, Skor Girişi ve profil |
+| Takım Yetkilisi – Yönetici | En fazla iki kendi takımını ve kendi takım sporcularını yönetir |
+| Takım Yetkilisi – Antrenör | Kendi takımı için sporcu işlemleri yapar |
+| Sporcu | Kendi profil ve hesap bilgileri |
+| Üye | Profil, favori takım ve sporcu takibi |
+
+Sınırlı yönetici hesapları yalnızca tam yönetici tarafından **Yöneticiler** ekranından oluşturulur.
+
+## Yönetim akışı
+
+1. **Ligler ve Sezon** sayfasından sezonu oluşturun veya aktif sezonu seçin.
+2. Takım Ligi ya da Bireysel Bölge Ligleri oluşturun.
+3. **Gruplar ve Fikstür** ekranından grup ekleyin.
+   - Takım grubu: Bölge adı ve Takım Ligi seçimi
+   - Bireysel grup: Bölge adı, Bireysel Lig, kategori ve atış alanı
+4. Takımları, sporcuları, hakemleri ve takım yetkililerini ekleyin.
+5. Sporcuları uygun bireysel grup veya turnuvalara kaydedin.
+6. Lig fikstürünü ya da turnuva ağacını oluşturun.
+7. Skor Girişi ekranından set ya da bireysel haftalık atış puanlarını girin.
+8. Sonuçları, puan tablolarını, kartları ve sezon arşivini siteden takip edin.
+
+## Önemli sayfalar
+
+| Sayfa | Açıklama |
+| --- | --- |
+| `admin/ligler.php` | Sezon, lig ve kadro dönemi yönetimi |
+| `admin/gruplar-ve-fikstur.php` | Takım/bireysel grup ve lig fikstürü yönetimi |
+| `admin/turnuvalar.php` | Turnuva oluşturma, katılımcı yerleşimi ve ağaç işlemleri |
+| `admin/maclar.php` | Karşılaşma ve atış planı yönetimi |
+| `admin/mac-skor.php` | Takım karşılaşması ve bireysel lig skor giriş seçimi |
+| `admin/bireysel-skor.php` | Bireysel grup haftalık atış puanı girişi |
+| `admin/sporcular.php` | Sporcu, kategori, organizasyon ve hesap yönetimi |
+| `admin/takimlar.php` | Takım ve logo yönetimi |
+| `admin/yoneticiler.php` | Sınırlı yönetici hesapları (yalnızca tam yönetici) |
+| `admin/sayfalar.php` | Hakkımızda, İletişim ve Destekleyenler içerikleri |
+| `sonuclar.php` | Lig ve turnuva sonuçları, lig/grup/kategori filtreleri |
+| `arsiv.php` | Resmileştirilmiş sezon sonuçları |
+
+`admin/gruplar.php` eski adresi korunur ancak otomatik olarak `admin/gruplar-ve-fikstur.php` sayfasına yönlenir.
+
+## Dizin yapısı
+
+```text
+okculuk-ligi/
+├── admin/                  # Rol bazlı yönetim paneli
+├── assets/                 # Stil, betik, logo ve yüklenen görseller
+├── config/                 # Kurulum sonrası oluşan sunucu yapılandırması
+├── includes/               # Ortak fonksiyonlar ve sayfa parçaları
+├── sql/                    # Başlangıç veritabanı şeması
+├── tools/                  # Demo kurulum aracı ve yardımcı dosyalar
+├── install.php             # Kurulum sihirbazı
+├── index.php               # Ana sayfa
+├── fikstur.php             # Fikstür ekranı
+├── sonuclar.php            # Karşılaşma sonuçları
+├── takimlar.php            # Takım listesi
+├── sporcular.php           # Sporcu listesi
+└── README.md
 ```
 
-İstatistikler `mac_istatistik_guncelle()` fonksiyonu tarafından her maç skor
-girişinden sonra otomatik olarak yeniden hesaplanır. Tüm takım ve sporcu
-kayıtları, sadece durumu `oynandi` olan maçlar üzerinden güncellenir — bu
-yüzden planlanmış maçlar istatistikleri etkilemez.
+## Güvenlik ve canlı ortam notları
 
-## 🎯 Hakem Skor Girişi
+- Kurulumdan sonra `config/install.lock` dosyasını silmeyin.
+- İlk yönetici ve demo hesaplarının parolalarını değiştirin.
+- `assets/uploads/` klasörünü yalnızca uygulamanın yazabileceği izinlerle yapılandırın.
+- Canlı ortamda HTTPS kullanın.
+- Veritabanını düzenli olarak yedekleyin.
+- PHP hata gösterimini canlı ortamda kapatın.
+- `config/` altındaki veritabanı bilgilerini asla GitHub’a yüklemeyin.
 
-`admin/mac-skor.php` sayfası şu matrisi içerir:
+## Sorun giderme
 
-```
-                  Set 1      Set 2      Set 3      Set 4      Set 5
-                 O1..O7 Σ   O1..O7 Σ   O1..O7 Σ   O1..O7 Σ   O1..O7 Σ
-Sporcu 1          [_ _ _ _]  ...
-Sporcu 2
-Sporcu 3
-Sporcu 4
-Sporcu 5
-─────────────────────────────────────────────────────────────
-Takım Toplam         Σ         Σ         Σ         Σ         Σ
-```
+| Sorun | Kontrol edilmesi gerekenler |
+| --- | --- |
+| Veritabanı bağlantısı kurulamıyor | Veritabanı bilgileri, kullanıcı yetkileri ve `pdo_mysql` eklentisi |
+| Kurulum tekrar açılmıyor | `config/install.lock` dosyası; canlı veriler varken silmeyin |
+| Görseller görünmüyor | `assets/uploads/` izinleri, dosya yolu ve sunucu erişim izinleri |
+| Bireysel sporcu grubu seçilemiyor | Sporcu kategorisi ile grup kategorisinin aynı olduğunu kontrol edin |
+| Mobil menü sorunlu | Tarayıcı önbelleğini temizleyin ve güncel stil/betik dosyalarının yüklendiğini doğrulayın |
+| Türkçe karakterler bozuk | Veritabanı ve bağlantının `utf8mb4` kullandığını doğrulayın |
 
-- 0–10 arası ok puanı girilir, geçersiz değerler otomatik düzeltilir.
-- Satır toplamı (sporcu set toplamı), sütun toplamı (takım set toplamı) ve
-  set kazananı JavaScript ile canlı hesaplanır.
-- "Skorları Kaydet" denilince tüm atışlar veritabanına yazılır ve maç
-  istatistikleri otomatik güncellenir.
+## Lisans
 
-## 🛠 Teknoloji
+Bu proje, [GNU General Public License v3.0](LICENSE) ile lisanslanmıştır.
 
-- **PHP 7.4+** (PDO + MySQL)
-- **MySQL 5.7+ / MariaDB 10.3+** (utf8mb4)
-- **Saf CSS + JS** (framework yok, sadece dahili)
-- **BCrypt** şifre hash
-- **CSRF** koruması tüm POST formlarında
-- **Session** tabanlı kimlik doğrulama
+Telif hakkı © 2026 **Sencer BALCIOĞLU**. Sistemin ilk sürümü Sencer BALCIOĞLU tarafından geliştirilmiştir.
 
-## 🔄 Fikstür Oluşturma
-
-Bir grup sayfasında (`admin/gruplar.php`):
-1. Grubu oluştur.
-2. 6 takımı gruba ekle.
-3. "Fikstür Oluştur" butonuna tıkla.
-4. Sistem round-robin algoritmasıyla 5 hafta × 3 maç = 15 maç üretir.
-5. (Mevcut planlanmış maçlar silinir, oynanmış olanlar korunur.)
-
-## 📝 Gerçek Veriye Geçiş
-
-Sistem production'a hazır. Geçiş için:
-1. `config/install.lock` silinirse install tekrar çalışır (verileri siler).
-2. **Verileri silmeden gerçek veriye geçmek için:**
-   - Admin → Duyurular / Haberler / Yönetmelikler sekmesinden yeni içerik girin.
-   - Admin → Gruplar → Yeni grup ekleyin.
-   - Admin → Takımlar → Takımları ekleyin.
-   - Admin → Sporcular → Sporcu ekleyin, takıma atayın.
-   - Admin → Hakemler / Yetkili → Hesap açın.
-   - Admin → Maçlar → Manuel maç ekleyin veya "Fikstür Oluştur" ile otomatik üretin.
-   - Hakem olarak giriş yapıp `admin/mac-skor.php` üzerinden skor girin.
-
-## 🆘 Sorun Giderme
-
-- **Veritabanı bağlantı hatası:** `config/database.php` dosyasındaki
-  bilgileri kontrol edin. `config/install.lock` varsa kurulum yapılmış demektir.
-- **Beyaz sayfa:** PHP hata gösterimini açın (`php.ini`'de `display_errors=On`).
-- **Görsel yüklenmiyor:** `assets/uploads/` alt klasörlerinin yazma izni
-  olduğundan emin olun (Linux: `chmod -R 777 assets/uploads`).
-- **Karakterler bozuk:** MySQL `utf8mb4` ve PHP dosyaları UTF-8 (BOM'suz).
-
-## 📄 Lisans
-
-Bu sistem açık kaynak kodludur, eğitim ve amatör spor organizasyonları için
-ücretsiz kullanılabilir.
+GPL-3.0; sistemin kullanılmasına, incelenmesine, değiştirilmesine, dağıtılmasına ve ücretli hizmet kapsamında sunulmasına izin verir. Projeyi veya değiştirilmiş bir sürümünü dağıtanlar, ilgili kaynak kodunu da GPL-3.0 koşullarıyla erişilebilir tutmalıdır.

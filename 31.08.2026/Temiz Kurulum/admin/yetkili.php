@@ -3,7 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 /** Yetkili (antrenör / kulüp yöneticisi) yönetimi — sadece admin */
-zorunlu_rol('admin');
+zorunlu_rol('admin','yonetici');
 
 $islem = $_GET['islem'] ?? 'liste';
 $id    = (int)($_GET['id'] ?? 0);
@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $yeni_sifre    = $_POST['yeni_sifre']    ?? '';
     $aktif         = isset($_POST['aktif']) ? 1 : 0;
 
+    if (!in_array($pozisyon, ['Yönetici','Antrenör'], true)) $pozisyon = 'Antrenör';
     if ($ad === '' || $soyad === '') {
         flash_set('hata','Ad ve soyad zorunludur.');
         redirect(BASE_URL.'/admin/yetkili.php?islem='.($_POST['islem']??'ekle').'&id='.(int)($_POST['id']??0));
@@ -35,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $uid = (int)$pdo->lastInsertId();
             $pdo->prepare("INSERT INTO yetkili (user_id,takim_id,ad,soyad,tc_kimlik,telefon,email,pozisyon) VALUES (?,?,?,?,?,?,?,?)")
                 ->execute([$uid, $takim_id, $ad, $soyad, $tc_kimlik, $telefon, $email, $pozisyon]);
+            if ($pozisyon==='Yönetici' && $takim_id) $pdo->prepare('UPDATE takimlar SET yonetici_user_id=? WHERE id=?')->execute([$uid,$takim_id]);
             flash_set('basari','Yetkili eklendi.');
         } elseif ($_POST['islem'] === 'duzenle') {
             $ytid = (int)$_POST['id'];
@@ -49,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->prepare("UPDATE users SET sifre=? WHERE id=?")
                         ->execute([sifre_hash($yeni_sifre), (int)$yt['user_id']]);
                 }
+                if ($pozisyon==='Yönetici' && $takim_id) $pdo->prepare('UPDATE takimlar SET yonetici_user_id=? WHERE id=?')->execute([(int)$yt['user_id'],$takim_id]);
             }
             flash_set('basari','Yetkili güncellendi.');
         }
@@ -101,7 +104,7 @@ ob_start();
         <label>TC Kimlik<input type="text" name="tc_kimlik" maxlength="11" value="<?= e($duzenlenen['tc_kimlik'] ?? '') ?>"></label>
         <label>Pozisyon
             <select name="pozisyon">
-                <?php foreach (['Antrenör','Kulüp Başkanı','Yönetici','Asistan Antrenör'] as $p): ?>
+                <?php foreach (['Yönetici','Antrenör'] as $p): ?>
                     <option value="<?= $p ?>" <?= ($duzenlenen['pozisyon']??'Antrenör')===$p?'selected':'' ?>><?= $p ?></option>
                 <?php endforeach; ?>
             </select>

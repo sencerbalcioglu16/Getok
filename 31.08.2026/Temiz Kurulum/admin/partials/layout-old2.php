@@ -32,7 +32,7 @@ $u = kullanici_bilgi();
                     <li><a href="<?= BASE_URL ?>/admin/haberler.php" class="<?= $admin_aktif=='haberler'?'active':'' ?>">📰 Haberler</a></li>
                     <li><a href="<?= BASE_URL ?>/admin/yonetmelikler.php" class="<?= $admin_aktif=='yonetmelik'?'active':'' ?>">📜 Yönetmelikler</a></li>
                     <li><hr></li>
-                    <li><a href="<?= BASE_URL ?>/admin/gruplar.php" class="<?= $admin_aktif=='gruplar'?'active':'' ?>">📋 Gruplar</a></li>
+                    <li><a href="<?= BASE_URL ?>/admin/gruplar-ve-fikstur.php" class="<?= $admin_aktif=='gruplar'?'active':'' ?>">📋 Gruplar</a></li>
                     <li><a href="<?= BASE_URL ?>/admin/takimlar.php" class="<?= $admin_aktif=='takimlar'?'active':'' ?>">🏛️ Takımlar</a></li>
                     <li><a href="<?= BASE_URL ?>/admin/sporcular.php" class="<?= $admin_aktif=='sporcular'?'active':'' ?>">🏹 Sporcular</a></li>
                     <li><a href="<?= BASE_URL ?>/admin/hakemler.php" class="<?= $admin_aktif=='hakemler'?'active':'' ?>">⚖️ Hakemler</a></li>

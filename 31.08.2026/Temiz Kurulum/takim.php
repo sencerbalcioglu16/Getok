@@ -1,121 +1,19 @@
 <?php
-
-// === 1) ÖNCE KONFİGÜRASYONLARI YÜKLE ===
-require_once __DIR__ . '/config/config.php';   // BASE_URL, LIG_SEZON, vs.
-require_once __DIR__ . '/config/database.php'; // PDO bağlantısı ($pdo)
-require_once __DIR__ . '/includes/functions.php'; // e(), tr_tarih_saat(), vs.
-
-/**
- * Takım detayı: kadro, maçlar
- */
-$sayfa_baslik = 'Takım Detayı';
-$aktif = 'takimlar';
-require_once __DIR__ . '/includes/header.php';
-
-$id = (int)($_GET['id'] ?? 0);
-$st = $pdo->prepare("SELECT t.*, g.grup_adi FROM takimlar t JOIN gruplar g ON g.id=t.grup_id WHERE t.id=?");
-$st->execute([$id]);
-$t = $st->fetch();
-if (!$t) { echo '<div class="flash flash-hata">Takım bulunamadı.</div>'; require_once __DIR__.'/includes/footer.php'; exit; }
-$favori = false;
-if (giris_yapmis()) { $fs=$pdo->prepare("SELECT id FROM favoriler WHERE user_id=? AND tur='takim' AND hedef_id=?"); $fs->execute([kullanici_bilgi()['id'],$id]); $favori=(bool)$fs->fetch(); }
-
-$sporcular = $pdo->prepare("SELECT * FROM sporcular WHERE takim_id = ? ORDER BY ad, soyad");
-$sporcular->execute([$id]);
-$sporcular = $sporcular->fetchAll();
-
-$maclar = $pdo->prepare("
-    SELECT m.*, tevt.takim_adi AS ev_adi, tdep.takim_adi AS dep_adi
-    FROM maclar m
-    JOIN takimlar tevt ON tevt.id = m.ev_sahibi_id
-    JOIN takimlar tdep ON tdep.id = m.deplasman_id
-    WHERE m.ev_sahibi_id = ? OR m.deplasman_id = ?
-    ORDER BY m.tarih DESC, m.id DESC
-");
-$maclar->execute([$id, $id]);
-$maclar = $maclar->fetchAll();
+require_once __DIR__.'/config/config.php';require_once __DIR__.'/config/database.php';require_once __DIR__.'/includes/functions.php';
+$id=(int)($_GET['id']??0);$st=$pdo->prepare("SELECT t.*,g.grup_adi,l.lig_adi,l.sezon_id,s.sezon_adi FROM takimlar t JOIN gruplar g ON g.id=t.grup_id JOIN ligler l ON l.id=g.lig_id LEFT JOIN sezonlar s ON s.id=l.sezon_id WHERE t.id=?");$st->execute([$id]);$t=$st->fetch();if(!$t){http_response_code(404);exit('Takım bulunamadı.');}takim_istatistiklerini_yenile($pdo,$id);$yenileSt=$pdo->prepare("SELECT t.*,g.grup_adi,l.lig_adi,l.sezon_id,s.sezon_adi FROM takimlar t JOIN gruplar g ON g.id=t.grup_id JOIN ligler l ON l.id=g.lig_id LEFT JOIN sezonlar s ON s.id=l.sezon_id WHERE t.id=?");$yenileSt->execute([$id]);$t=$yenileSt->fetch();
+$favori=false;if(giris_yapmis()){$fs=$pdo->prepare("SELECT id FROM favoriler WHERE user_id=? AND tur='takim' AND hedef_id=?");$fs->execute([kullanici_bilgi()['id'],$id]);$favori=(bool)$fs->fetch();}
+$sporcuSt=$pdo->prepare('SELECT * FROM sporcular WHERE takim_id=? ORDER BY ad,soyad');$sporcuSt->execute([$id]);$sporcular=$sporcuSt->fetchAll();
+$yetkiliSt=$pdo->prepare("SELECT u.ad_soyad,y.pozisyon FROM yetkili y JOIN users u ON u.id=y.user_id WHERE y.takim_id=? OR y.user_id=(SELECT yonetici_user_id FROM takimlar WHERE id=?) ORDER BY y.pozisyon='Yönetici' DESC LIMIT 1");$yetkiliSt->execute([$id,$id]);$yetkili=$yetkiliSt->fetch();
+$macSt=$pdo->prepare("SELECT m.*,ev.takim_adi ev,dep.takim_adi dep FROM maclar m JOIN gruplar g ON g.id=m.grup_id JOIN ligler l ON l.id=g.lig_id JOIN takimlar ev ON ev.id=m.ev_sahibi_id JOIN takimlar dep ON dep.id=m.deplasman_id WHERE (m.ev_sahibi_id=? OR m.deplasman_id=?) AND l.sezon_id=? ORDER BY COALESCE(m.tarih,'1000-01-01') DESC,m.id DESC");$macSt->execute([$id,$id,$t['sezon_id']]);$tumMaclar=$macSt->fetchAll();$sonMaclar=array_slice($tumMaclar,0,4);
+$sonOynanan=null;foreach($tumMaclar as $m)if($m['durum']==='oynandi'){$sonOynanan=$m;break;}$ligOrtalama=$t['oynanan_mac']>0?round($t['toplam_puan']/$t['oynanan_mac'],1):0;
+$turnuvaSt=$pdo->prepare("SELECT tm.*,tr.id turnuva_id,tr.turnuva_adi FROM turnuva_maclari tm JOIN turnuvalar tr ON tr.id=tm.turnuva_id WHERE tr.tur='takim' AND (tm.katilimci1_id=? OR tm.katilimci2_id=?) ORDER BY tm.tur_no DESC,tm.id DESC");$turnuvaSt->execute([$id,$id]);$turnuvaSatirlari=$turnuvaSt->fetchAll();$turnuvalar=[];foreach($turnuvaSatirlari as $x)if(!isset($turnuvalar[$x['turnuva_id']]))$turnuvalar[$x['turnuva_id']]=$x;$sonTurnuva=$turnuvaSatirlari[0]??null;
+function takim_tur_adi($tur){return $tur===1?'İlk Tur':($tur===2?'Çeyrek Final':($tur===3?'Yarı Final':($tur===4?'Final':$tur.'. Tur')));}
+$sayfa_baslik=$t['takim_adi'];$aktif='takimlar';require __DIR__.'/includes/header.php';$yenileSt->execute([$id]);$t=$yenileSt->fetch();
 ?>
-<h1><?= e($t['takim_adi']) ?></h1>
-<p class="muted">
-    <strong><?= e($t['grup_adi']) ?></strong>
-    <?php if ($t['sehir']): ?> · <?= e($t['sehir']) ?><?php endif; ?>
-    <?php if ($t['kurulus_yili']): ?> · Kuruluş: <?= e($t['kurulus_yili']) ?><?php endif; ?>
-</p>
-<?php if (giris_yapmis()): ?><form method="post" action="<?= BASE_URL ?>/favori.php" class="favorite-form"><?= csrf_field() ?><input type="hidden" name="tur" value="takim"><input type="hidden" name="hedef_id" value="<?= $id ?>"><input type="hidden" name="islem" value="<?= $favori?'kaldir':'ekle' ?>"><input type="hidden" name="donus" value="<?= e(BASE_URL.'/takim.php?id='.$id) ?>"><button class="btn <?= $favori?'btn-outline':'btn-primary' ?>"><?= $favori?'★ Takibi bırak':'☆ Takip et' ?></button></form><?php else: ?><p><a href="<?= BASE_URL ?>/login.php" class="btn btn-outline">☆ Takip etmek için giriş yapın</a></p><?php endif; ?>
-
-<section class="card">
-    <div class="card-head"><h2>📊 Takım Puan Durumu</h2></div>
-    <div class="kpis">
-        <div class="kpi"><span>Oynanan</span><strong><?= (int)$t['oynanan_mac'] ?></strong></div>
-        <div class="kpi"><span>Galibiyet</span><strong><?= (int)$t['kazanilan_mac'] ?></strong></div>
-        <div class="kpi"><span>Mağlubiyet</span><strong><?= (int)$t['kaybedilen_mac'] ?></strong></div>
-        <div class="kpi kpi-primary"><span>Toplam Set</span><strong><?= (int)$t['toplam_set'] ?></strong></div>
-        <div class="kpi"><span>Averaj (Atış Puanı)</span><strong><?= (int)$t['toplam_puan'] ?></strong></div>
-    </div>
-</section>
-
-<section class="card">
-    <div class="card-head"><h2>👥 Sporcu Kadrosu (<?= count($sporcular) ?>)</h2></div>
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>#</th><th>Ad Soyad</th><th>Kategori</th>
-                    <th>Toplam Puan</th><th>Atış</th><th>Maç</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php if (empty($sporcular)): ?>
-                <tr><td colspan="6" class="muted">Kadro boş.</td></tr>
-            <?php else: foreach ($sporcular as $i => $s): ?>
-                <tr>
-                    <td><?= $i+1 ?></td>
-                    <td><a href="<?= BASE_URL ?>/sporcu.php?id=<?= (int)$s['id'] ?>"><?= e($s['ad'].' '.$s['soyad']) ?></a></td>
-                    <td><?= e($s['kategori'] ?? '-') ?></td>
-                    <td><?= (int)$s['toplam_puan'] ?></td>
-                    <td><?= (int)$s['atis_sayisi'] ?></td>
-                    <td><?= (int)$s['oynanan_mac'] ?></td>
-                </tr>
-            <?php endforeach; endif; ?>
-            </tbody>
-        </table>
-    </div>
-</section>
-
-<section class="card">
-    <div class="card-head"><h2>📅 Maçlar</h2></div>
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead>
-                <tr><th>Tarih</th><th>Ev Sahibi</th><th>Skor</th><th>Deplasman</th><th>Durum</th></tr>
-            </thead>
-            <tbody>
-            <?php foreach ($maclar as $m): ?>
-                <tr>
-                    <td><?= tr_tarih($m['tarih']) ?></td>
-                    <td><strong><?= e($m['ev_adi']) ?></strong></td>
-                    <td>
-                        <?php if ($m['durum']==='oynandi'): ?>
-                            <?= (int)$m['ev_sahibi_set'] ?> - <?= (int)$m['deplasman_set'] ?>
-                            <small>(<?= (int)$m['ev_sahibi_puan'] ?> - <?= (int)$m['deplasman_puan'] ?>)</small>
-                        <?php else: ?>
-                            <span class="muted">vs</span>
-                        <?php endif; ?>
-                    </td>
-                    <td><?= e($m['dep_adi']) ?></td>
-                    <td>
-                        <?php if ($m['durum']==='oynandi'): ?>
-                            <span class="badge badge-ok">Oynandı</span>
-                        <?php elseif ($m['durum']==='iptal'): ?>
-                            <span class="badge badge-no">İptal</span>
-                        <?php else: ?>
-                            <span class="badge">Planlandı</span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-</section>
-<?php require_once __DIR__ . '/includes/footer.php'; ?>
+<main class="main-content"><section class="takim-profil"><div class="takim-logo-alani"><?php if($t['logo']): ?><img src="<?= UPLOAD_URL ?>/takimlar/<?= e(basename($t['logo'])) ?>" alt="<?= e($t['takim_adi']) ?> logosu"><?php else: ?><span>🏹</span><?php endif; ?></div><div class="takim-profil-yazi"><span class="eyebrow">TAKIM KARTI</span><h1><?= e($t['takim_adi']) ?></h1><p class="muted"><?= e($t['grup_adi']) ?> · <?= e($t['lig_adi']) ?><?= $t['sehir']?' · '.e($t['sehir']):'' ?></p><p><?= e($t['aciklama']?:'Bu takım için henüz kısa açıklama eklenmedi.') ?></p></div><?php if(giris_yapmis()): ?><form method="post" action="<?= BASE_URL ?>/favori.php" class="takim-takip"><?= csrf_field() ?><input type="hidden" name="tur" value="takim"><input type="hidden" name="hedef_id" value="<?= $id ?>"><input type="hidden" name="islem" value="<?= $favori?'kaldir':'ekle' ?>"><input type="hidden" name="donus" value="<?= e(BASE_URL.'/takim.php?id='.$id) ?>"><button class="btn <?= $favori?'btn-outline':'btn-primary' ?>"><?= $favori?'★ Takibi bırak':'☆ Takip et' ?></button></form><?php endif; ?></section>
+<div class="takim-kart-duzeni"><div><section class="card"><div class="card-head"><h2>Lig Bilgileri</h2><span class="badge"><?= e($t['sezon_adi']) ?></span></div><dl class="info-list"><dt>Lig</dt><dd><?= e($t['lig_adi']) ?></dd><dt>Grup</dt><dd><?= e($t['grup_adi']) ?></dd><dt>Takım Yetkilisi</dt><dd><?= e($yetkili['ad_soyad']??'Atanmadı') ?><?= !empty($yetkili['pozisyon'])?' · '.e($yetkili['pozisyon']):'' ?></dd></dl></section>
+<section class="card"><div class="card-head"><h2>Turnuva Durumu</h2></div><?php if(!$turnuvalar): ?><p class="muted">Bu takımın turnuva kaydı bulunmuyor.</p><?php else: ?><div class="turnuva-durum-listesi"><?php foreach($turnuvalar as $tr): ?><a href="<?= BASE_URL ?>/turnuva.php?id=<?= (int)$tr['turnuva_id'] ?>"><strong><?= e($tr['turnuva_adi']) ?></strong><span><?= e(takim_tur_adi((int)$tr['tur_no'])) ?> · <?= $tr['durum']==='oynandi'?'Tamamlandı':'Sıradaki eşleşme' ?></span></a><?php endforeach; ?></div><?php endif; ?></section>
+<section class="card"><div class="card-head"><h2>Sporcu Listesi</h2><span class="badge"><?= count($sporcular) ?> sporcu</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Sporcu</th><th>Kategori</th><th>Puan</th></tr></thead><tbody><?php foreach($sporcular as $s): ?><tr><td><a href="<?= BASE_URL ?>/sporcu.php?id=<?= (int)$s['id'] ?>"><?= e($s['ad'].' '.$s['soyad']) ?></a></td><td><?= e($s['kategori']) ?></td><td><?= (int)$s['toplam_puan'] ?></td></tr><?php endforeach; ?></tbody></table></div></section>
+<section class="card"><div class="card-head"><h2>Mevcut Sezondaki Son Karşılaşmalar</h2><a class="btn btn-sm" href="<?= BASE_URL ?>/takim-maclar.php?id=<?= $id ?>">Tümünü görüntüle</a></div><div class="match-list"><?php foreach($sonMaclar as $m): ?><article><small><?= tr_tarih($m['tarih']) ?> · <?= e($m['grup_adi']??$t['grup_adi']) ?></small><strong><a href="<?= BASE_URL ?>/mac.php?id=<?= (int)$m['id'] ?>"><?= e($m['ev']) ?> <span><?= $m['durum']==='oynandi'?(int)$m['ev_sahibi_set'].' - '.(int)$m['deplasman_set']:'vs' ?></span> <?= e($m['dep']) ?></a></strong><span class="badge"><?= $m['durum']==='oynandi'?'Tamamlandı':'Planlandı' ?></span></article><?php endforeach; ?></div></section></div>
+<aside class="takim-performans"><section class="card"><span class="eyebrow">LİG PERFORMANSI</span><div class="performans-satir"><span>Ligde son hafta puanı</span><b><?= $sonOynanan?((int)($sonOynanan['ev_sahibi_id']==$id?$sonOynanan['ev_sahibi_puan']:$sonOynanan['deplasman_puan'])):'—' ?></b></div><div class="performans-satir"><span>Ligde puan ortalaması</span><b><?= $ligOrtalama ?></b></div><div class="performans-satir"><span>Galibiyet / Mağlubiyet</span><b><?= (int)$t['kazanilan_mac'] ?> / <?= (int)$t['kaybedilen_mac'] ?></b></div></section><section class="card"><span class="eyebrow">TURNUVA PERFORMANSI</span><div class="performans-satir"><span>Son karşılaşma</span><b><?= $sonTurnuva?e($sonTurnuva['turnuva_adi']):'—' ?></b></div><?php if($sonTurnuva): ?><div class="performans-satir"><span>Eleme turu</span><b><?= e(takim_tur_adi((int)$sonTurnuva['tur_no'])) ?></b></div><div class="performans-satir"><span>Set skoru</span><b><?= (int)$sonTurnuva['puan1'] ?> - <?= (int)$sonTurnuva['puan2'] ?></b></div><?php endif; ?></section></aside></div></main>
+<?php require __DIR__.'/includes/sidebar.php';require __DIR__.'/includes/footer.php'; ?>

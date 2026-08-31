@@ -20,7 +20,7 @@ $menuler = [
     ['key'=>'duyurular', 'icon'=>'📢', 'ad'=>'Duyurular',    'url'=>'/admin/duyurular.php', 'rol'=>['admin']],
     ['key'=>'haberler',  'icon'=>'📰', 'ad'=>'Haberler',     'url'=>'/admin/haberler.php',  'rol'=>['admin']],
     ['key'=>'yonetmelik','icon'=>'📜', 'ad'=>'Yönetmelikler','url'=>'/admin/yonetmelikler.php','rol'=>['admin']],
-    ['key'=>'gruplar',   'icon'=>'👥', 'ad'=>'Gruplar',      'url'=>'/admin/gruplar.php',   'rol'=>['admin']],
+    ['key'=>'gruplar',   'icon'=>'👥', 'ad'=>'Gruplar',      'url'=>'/admin/gruplar-ve-fikstur.php',   'rol'=>['admin']],
     ['key'=>'takimlar',  'icon'=>'🏹', 'ad'=>'Takımlar',     'url'=>'/admin/takimlar.php',  'rol'=>['admin','yetkili']],
     ['key'=>'sporcular', 'icon'=>'🎯', 'ad'=>'Sporcular',    'url'=>'/admin/sporcular.php', 'rol'=>['admin','yetkili','sporcu']],
     ['key'=>'yetkili',   'icon'=>'🧑‍💼','ad'=>'Yetkililer',  'url'=>'/admin/yetkili.php',   'rol'=>['admin']],

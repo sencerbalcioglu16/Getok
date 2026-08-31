@@ -1,10 +1,4 @@
 <?php
-// Hata raporlamayı aç (geçici)
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// 1) KONFİGÜRASYON VE FONKSİYONLARI YÜKLE
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/functions.php';
@@ -12,12 +6,8 @@ require_once __DIR__ . '/includes/functions.php';
 /**
  * Giriş sayfası (admin / hakem / sporcu / yetkili)
  */
-$sayfa_baslik = 'Giriş';
-require_once __DIR__ . '/includes/header.php';
-
-// Eğer zaten giriş yapmışsa admin paneline yönlendir
 if (giris_yapmis()) {
-    redirect(BASE_URL . '/admin/');
+    redirect(hesap_sayfasi_url());
 }
 
 $hata = '';
@@ -37,19 +27,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hata = 'Hatalı kullanıcı adı veya şifre.';
             } else {
                 $pdo->prepare("UPDATE users SET son_giris = NOW() WHERE id = ?")->execute([$u['id']]);
-                $_SESSION['kullanici'] = [
-                    'id'           => (int)$u['id'],
-                    'kullanici_adi'=> $u['kullanici_adi'],
-                    'email'        => $u['email'],
-                    'rol'          => $u['rol'],
-                    'ad_soyad'     => $u['ad_soyad'],
-                ];
+                oturum_ac($u);
                 flash_set('basari', 'Hoş geldiniz, ' . ($u['ad_soyad'] ?: $u['kullanici_adi']) . '.');
-                redirect($u['rol'] === 'uye' ? BASE_URL . '/favorilerim.php' : BASE_URL . '/admin/');
+                redirect(hesap_sayfasi_url());
             }
         }
     }
 }
+$sayfa_baslik = 'Giriş';
+require_once __DIR__ . '/includes/header.php';
 ?>
 <main class="main-content">
 <div class="auth-wrap">
@@ -69,15 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <p class="muted center">Hesabınız yok mu? <a href="<?= BASE_URL ?>/register.php">Üye olun</a></p>
 
-        <div class="hint-box">
-            <strong>Örnek Hesaplar</strong>
-            <ul>
-                <li>Yönetici: <code>admin</code> / <code>admin123</code></li>
-                <li>Hakem: <code>hakem1</code> / <code>hakem123</code></li>
-                <li>Yetkili: <code>yetkili1</code> / <code>yetkili123</code></li>
-                <li>Sporcu: <code>sporcu1</code> / <code>sporcu123</code></li>
-            </ul>
-        </div>
+        <p class="hint-box">Yönetim hesabınız varsa girişten sonra Hesabım sayfasındaki ayrı <strong>Yönetim Paneli</strong> düğmesini kullanın.</p>
     </div>
 </div>
 </main>

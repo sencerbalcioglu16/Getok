@@ -3,7 +3,7 @@
  * KURULUM SİHİRBAZI
  * ----------------------------------------------------------------
  *  1) Veritabanı bilgilerini al
- *  2) Veritabanını oluştur + sql/install.sql içeriğini yükle
+ *  2) Önceden oluşturulmuş veritabanına bağlan + sql/install.sql içeriğini yükle
  *  3) Admin hesabı oluştur
  *  4) install.lock dosyası yaz
  *  5) Ana sayfaya yönlendir
@@ -99,6 +99,7 @@ $mesaj = '';
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['adim'] == 1) {
     $host = trim($_POST['db_host'] ?? 'localhost');
+    $port = trim($_POST['db_port'] ?? '');
     $name = trim($_POST['db_name'] ?? 'okculuk_ligi');
     $user = trim($_POST['db_user'] ?? 'root');
     $pass = $_POST['db_pass'] ?? '';
@@ -109,17 +110,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
     $admin_pass = $_POST['admin_pass'] ?? 'admin123';
     $admin_name = trim($_POST['admin_name'] ?? 'Site Yöneticisi');
 
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $name)) {
+        $hata = 'Veritabanı adı yalnızca harf, rakam ve alt çizgi içerebilir.';
+    }
+    if ($port !== '' && !ctype_digit($port)) $hata = 'Veritabanı portu yalnızca rakamlardan oluşmalıdır.';
+    if ($kilitli && empty($_POST['force'])) {
+        $hata = 'Kurulum kilitli. Yeniden kurulum için ?force=1 adresini kullanın.';
+    }
+
     if ($base === '') {
         $base = 'http://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
     }
 
     // --- 6a. Veritabanına bağlan ---
     try {
-        $dsn0 = "mysql:host={$host};charset=utf8mb4";
+        if ($hata) throw new RuntimeException($hata);
+        // Kurulum yalnızca kullanıcıya atanmış, önceden oluşturulmuş veritabanına bağlanır.
+        $dsn0 = "mysql:host={$host}" . ($port !== '' ? ";port={$port}" : '') . ";dbname={$name};charset=utf8mb4";
         $pdo0 = new PDO($dsn0, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-        $pdo0->exec("CREATE DATABASE IF NOT EXISTS `{$name}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        $pdo0->exec("USE `{$name}`");
-    } catch (PDOException $e) {
+    } catch (Throwable $e) {
         $hata = 'MySQL bağlantı hatası: ' . $e->getMessage();
     }
 
@@ -173,6 +182,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
         }
     }
 
+    // Temiz kurulum paketinde eski temel şemadan gelen örnek verileri kaldır.
+    // Demo paketi, işaret dosyası sayesinde bu aşamayı atlar ve kendi örnek
+    // organizasyonlarını kurulumun sonraki adımında oluşturur.
+    if (!$hata && !file_exists(__DIR__ . '/tools/demo-kurulum.modu')) {
+        try {
+            $pdo0->exec('SET FOREIGN_KEY_CHECKS=0');
+            foreach ([
+                'sporcu_set_atislari', 'mac_setleri', 'maclar', 'yetkili', 'hakemler',
+                'sporcular', 'takimlar', 'gruplar', 'duyurular', 'haberler', 'yonetmelikler'
+            ] as $tablo) {
+                $pdo0->exec("DELETE FROM `{$tablo}`");
+            }
+            // İlk satır, kurulum ekranında güncellenen ana yönetici hesabıdır.
+            $pdo0->exec('DELETE FROM users WHERE id <> 1');
+            $pdo0->exec('SET FOREIGN_KEY_CHECKS=1');
+        } catch (PDOException $e) {
+            try { $pdo0->exec('SET FOREIGN_KEY_CHECKS=1'); } catch (PDOException $ignore) { }
+            $hata = 'Temiz kurulum verileri hazırlanamadı: ' . $e->getMessage();
+        }
+    }
+
     // --- 6c. Config dosyalarını yaz ---
     if (!$hata) {
         // database.php
@@ -181,8 +211,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
                 . "\$DB_USER = " . var_export($user, true) . ";\n"
                 . "\$DB_PASS = " . var_export($pass, true) . ";\n"
                 . "\$DB_CHAR = 'utf8mb4';\n\n"
+                . "\$DB_PORT = " . var_export($port !== '' ? $port : null, true) . ";\n\n"
                 . "try {\n"
-                . "    \$dsn = \"mysql:host={\$DB_HOST};dbname={\$DB_NAME};charset={\$DB_CHAR}\";\n"
+                . "    \$dsn = \"mysql:host={\$DB_HOST}\" . (\$DB_PORT ? \";port={\$DB_PORT}\" : '') . \";dbname={\$DB_NAME};charset={\$DB_CHAR}\";\n"
                 . "    \$pdo = new PDO(\$dsn, \$DB_USER, \$DB_PASS, [\n"
                 . "        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,\n"
                 . "        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n"
@@ -198,8 +229,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
 
         // config.php
         $cfg_main = "<?php\nif (!defined('OKCULUK_LOADED')) define('OKCULUK_LOADED', true);\n"
-                  . "define('BASE_URL', " . var_export($base, true) . ");\n"
-                  . "define('BASE_PATH', " . var_export(__DIR__, true) . ");\n"
+                  . "\$ortamUrl = getenv('OKCULUK_BASE_URL');\n"
+                  . "if (!\$ortamUrl && PHP_SAPI !== 'cli' && !empty(\$_SERVER['HTTP_HOST'])) {\n"
+                  . "    \$https = (!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off') || ((\$_SERVER['SERVER_PORT'] ?? '') == 443);\n"
+                  . "    \$projeKoku = realpath(dirname(__DIR__)); \$belgeKoku = !empty(\$_SERVER['DOCUMENT_ROOT']) ? realpath(\$_SERVER['DOCUMENT_ROOT']) : false;\n"
+                  . "    if (\$projeKoku && \$belgeKoku && str_starts_with(strtolower(\$projeKoku), strtolower(\$belgeKoku))) \$klasor = str_replace('\\\\', '/', substr(\$projeKoku, strlen(\$belgeKoku)));\n"
+                  . "    else \$klasor = preg_replace('#/(admin)(/.*)?$#', '', str_replace('\\\\', '/', dirname(\$_SERVER['SCRIPT_NAME'] ?? '/')));\n"
+                  . "    \$ortamUrl = (\$https ? 'https' : 'http') . '://' . \$_SERVER['HTTP_HOST'] . rtrim(\$klasor, '/.');\n"
+                  . "}\n"
+                  . "define('BASE_URL', rtrim(\$ortamUrl ?: " . var_export($base, true) . ", '/'));\n"
+                  . "define('BASE_PATH', dirname(__DIR__));\n"
                   . "define('UPLOAD_DIR', BASE_PATH . '/assets/uploads');\n"
                   . "define('UPLOAD_URL', BASE_URL . '/assets/uploads');\n"
                   . "define('LIG_ADI', 'Okçuluk Amatör Ligi');\n"
@@ -225,6 +264,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
         try {
             // Kurulumla birlikte güncel şema eklerini de oluştur: ligler,
             // sezon/arşiv, favoriler, bireysel fikstür ve canlı set alanları.
+            if (!file_exists(__DIR__ . '/tools/demo-kurulum.modu') && !defined('TEMIZ_KURULUM')) {
+                define('TEMIZ_KURULUM', true);
+            }
             require_once __DIR__ . '/config/config.php';
             require_once __DIR__ . '/config/database.php';
             require_once __DIR__ . '/includes/functions.php';
@@ -245,7 +287,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
             $hash_s = password_hash('sporcu123', PASSWORD_BCRYPT);
             $pdo->prepare("UPDATE users SET sifre=? WHERE id=6")->execute([$hash_s]);
 
-        } catch (PDOException $e) {
+            // Demo paketinde bu işaret dosyası bulunur; kurulum sonrasında
+            // örnek sezon, görseller ve simüle edilmiş karşılaşmalar oluşturulur.
+            if (file_exists(__DIR__ . '/tools/demo-kurulum.modu')) {
+                define('DEMO_KURULUM_AGENT', true);
+                require __DIR__ . '/tools/demo_organizasyon_agent.php';
+            }
+
+        } catch (Throwable $e) {
             $hata = 'Kullanıcı güncelleme hatası: ' . $e->getMessage();
         }
     }
@@ -296,23 +345,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
                 </div>
             <?php endif; ?>
 
-            <form method="post" class="form">
+    <form method="post" class="form">
                 <input type="hidden" name="adim" value="1">
+                <?php if (!empty($_GET['force'])): ?><input type="hidden" name="force" value="1"><?php endif; ?>
 
                 <h3>1. Veritabanı Bilgileri (MySQL)</h3>
+                <div class="hint-box" style="margin-top:0">
+                    <strong>Veritabanı bilgilerinizi girin:</strong> Kurulumdan önce hosting panelinizden boş bir MySQL veritabanı ve bu veritabanına yetkili bir kullanıcı oluşturun. Sistem yeni veritabanı oluşturmaya çalışmaz.
+                </div>
                 <div class="grid-2">
-                    <label>Sunucu
+                    <label>MySQL Sunucusu
                         <input type="text" name="db_host" required value="localhost">
                     </label>
-                    <label>Veritabanı Adı
-                        <input type="text" name="db_name" required value="okculuk_ligi">
+                    <label>MySQL Portu <small class="muted">(genellikle 3306)</small>
+                        <input type="text" name="db_port" value="">
                     </label>
                 </div>
                 <div class="grid-2">
+                    <label>Veritabanı Adı
+                        <input type="text" name="db_name" required value="okculuk_ligi">
+                    </label>
                     <label>Kullanıcı
                         <input type="text" name="db_user" required value="root">
                     </label>
-                    <label>Parola
+                </div>
+                <div class="grid-2">
+                    <label>Veritabanı Parolası
                         <input type="password" name="db_pass" value="">
                     </label>
                 </div>
@@ -349,8 +407,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adim']) && $_POST['ad
             </form>
 
             <div class="hint-box">
-                <strong>📋 Örnek Veriler Yüklenecek</strong>
+                <strong>📋 Temiz Kurulum</strong>
                 <ul>
+                    <li>Seçilen veritabanı temizlenir ve sistem tabloları yeniden oluşturulur.</li>
                     <li>2 grup (A, B)</li>
                     <li>12 takım (her grupta 6)</li>
                     <li>60 sporcu (her takımda 5)</li>

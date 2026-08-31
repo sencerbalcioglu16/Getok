@@ -6,11 +6,8 @@ require_once __DIR__ . '/includes/functions.php';
  * Üye olma sayfası
  * - Herkese açık kayıtlar yalnızca takipçi üye hesabı açar.
  */
-$sayfa_baslik = 'Üye Ol';
-require_once __DIR__ . '/includes/header.php';
-
 if (giris_yapmis()) {
-    redirect(kullanici_bilgi()['rol'] === 'uye' ? BASE_URL . '/favorilerim.php' : BASE_URL . '/admin/');
+    redirect(hesap_sayfasi_url());
 }
 
 $hata = '';
@@ -32,8 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($kullanici_adi === '' || $email === '' || $ad_soyad === '' || $sifre === '') {
             $hata = 'Tüm zorunlu alanları doldurun.';
-        } elseif (strlen($sifre) < 6) {
-            $hata = 'Şifre en az 6 karakter olmalıdır.';
+        } elseif (!preg_match('/^[a-zA-Z0-9_.-]{3,60}$/', $kullanici_adi)) {
+            $hata = 'Kullanıcı adı 3-60 karakter olmalı; yalnızca harf, rakam, nokta, alt çizgi ve tire içerebilir.';
+        } elseif (mb_strlen($ad_soyad) < 2 || mb_strlen($ad_soyad) > 120) {
+            $hata = 'Ad soyad 2-120 karakter arasında olmalıdır.';
+        } elseif (strlen($sifre) < 8 || strlen($sifre) > 72) {
+            $hata = 'Şifre 8-72 karakter arasında olmalıdır.';
         } elseif ($sifre !== $sifre2) {
             $hata = 'Şifreler eşleşmiyor.';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -62,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+$sayfa_baslik = 'Üye Ol';
+require_once __DIR__ . '/includes/header.php';
 ?>
 <div class="auth-wrap">
     <div class="card auth-card">
@@ -81,11 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label>E-posta *
                 <input type="email" name="email" required value="<?= e($_POST['email'] ?? '') ?>">
             </label>
-            <label>Şifre * (en az 6 karakter)
-                <input type="password" name="sifre" required>
+            <label>Şifre * (en az 8 karakter)
+                <input type="password" name="sifre" required minlength="8" maxlength="72" autocomplete="new-password">
             </label>
             <label>Şifre Tekrar *
-                <input type="password" name="sifre_tekrar" required>
+                <input type="password" name="sifre_tekrar" required minlength="8" maxlength="72" autocomplete="new-password">
             </label>
             <button type="submit" class="btn btn-primary btn-block">Üye Ol</button>
         </form>
