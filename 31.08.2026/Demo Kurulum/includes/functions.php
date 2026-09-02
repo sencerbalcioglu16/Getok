@@ -114,19 +114,59 @@ if (!function_exists('guvenli_donus_url')) {
     }
 }
 
+// ---- Kalıcı oturum ("Beni hatırla") ----
+if (!function_exists('kalici_oturum_cerez_adi')) {
+    function kalici_oturum_cerez_adi() { return 'getok_hatirla'; }
+}
+
+if (!function_exists('kalici_oturum_cerez_ayarla')) {
+    function kalici_oturum_cerez_ayarla($deger, $sonTarih) {
+        $guvenli = str_starts_with(BASE_URL, 'https://');
+        setcookie(kalici_oturum_cerez_adi(), $deger, [
+            'expires' => $sonTarih, 'path' => '/', 'secure' => $guvenli,
+            'httponly' => true, 'samesite' => 'Lax',
+        ]);
+    }
+}
+
+if (!function_exists('kalici_oturum_baslat')) {
+    function kalici_oturum_baslat(PDO $pdo, $kullaniciId) {
+        $token = bin2hex(random_bytes(32));
+        $sonTarih = time() + (30 * 24 * 60 * 60);
+        $pdo->prepare('DELETE FROM kalici_oturumlar WHERE expires_at < NOW()')->execute();
+        $pdo->prepare('INSERT INTO kalici_oturumlar (user_id,token_hash,expires_at) VALUES (?,?,FROM_UNIXTIME(?))')
+            ->execute([(int)$kullaniciId, hash('sha256', $token), $sonTarih]);
+        kalici_oturum_cerez_ayarla($token, $sonTarih);
+    }
+}
+
+if (!function_exists('kalici_oturum_sil')) {
+    function kalici_oturum_sil($pdo = null) {
+        $token = $_COOKIE[kalici_oturum_cerez_adi()] ?? '';
+        if ($pdo instanceof PDO && preg_match('/^[a-f0-9]{64}$/', $token)) {
+            try { $pdo->prepare('DELETE FROM kalici_oturumlar WHERE token_hash=?')->execute([hash('sha256', $token)]); } catch (PDOException $e) { }
+        }
+        kalici_oturum_cerez_ayarla('', time() - 3600);
+        unset($_COOKIE[kalici_oturum_cerez_adi()]);
+    }
+}
+
 if (!function_exists('oturum_ac')) {
-    function oturum_ac(array $kullanici) {
+    function oturum_ac(array $kullanici, $beniHatirla = false, $pdo = null) {
         session_regenerate_id(true);
         $_SESSION['kullanici'] = [
             'id' => (int)$kullanici['id'], 'kullanici_adi' => $kullanici['kullanici_adi'],
             'email' => $kullanici['email'], 'rol' => $kullanici['rol'], 'ad_soyad' => $kullanici['ad_soyad'],
         ];
         unset($_SESSION['csrf_token']);
+        if ($beniHatirla && $pdo instanceof PDO) kalici_oturum_baslat($pdo, $kullanici['id']);
     }
 }
 
 if (!function_exists('oturum_kapat')) {
     function oturum_kapat($mesaj = 'Çıkış yaptınız.') {
+        global $pdo;
+        kalici_oturum_sil($pdo ?? null);
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $p = session_get_cookie_params();
@@ -170,12 +210,40 @@ if (!function_exists('uyumluluk_guncelle')) {
                 CONSTRAINT fk_favori_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
             $pdo->exec("CREATE TABLE IF NOT EXISTS sistem_ayarlari (anahtar VARCHAR(80) PRIMARY KEY, deger VARCHAR(255) NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $pdo->exec("CREATE TABLE IF NOT EXISTS kalici_oturumlar (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                token_hash CHAR(64) NOT NULL UNIQUE,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_used_at DATETIME NULL,
+                KEY idx_kalici_oturum_user (user_id),
+                KEY idx_kalici_oturum_expires (expires_at),
+                CONSTRAINT fk_kalici_oturum_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
             $pdo->prepare("INSERT IGNORE INTO sistem_ayarlari(anahtar,deger) VALUES('sporcu_kayit_acik','1')")->execute();
         } catch (PDOException $e) { /* eski veya sınırlı kurulumlarda siteyi durdurma */ }
     }
 }
 
 if (isset($pdo) && $pdo instanceof PDO) uyumluluk_guncelle($pdo);
+
+if (!function_exists('kalici_oturumu_yukle')) {
+    function kalici_oturumu_yukle(PDO $pdo) {
+        if (giris_yapmis()) return;
+        $token = $_COOKIE[kalici_oturum_cerez_adi()] ?? '';
+        if (!preg_match('/^[a-f0-9]{64}$/', $token)) return;
+        try {
+            $st = $pdo->prepare('SELECT u.* FROM kalici_oturumlar k JOIN users u ON u.id=k.user_id WHERE k.token_hash=? AND k.expires_at>NOW() AND u.aktif=1 LIMIT 1');
+            $st->execute([hash('sha256', $token)]);
+            $kullanici = $st->fetch();
+            if (!$kullanici) { kalici_oturum_sil($pdo); return; }
+            oturum_ac($kullanici);
+            $pdo->prepare('UPDATE kalici_oturumlar SET last_used_at=NOW() WHERE token_hash=?')->execute([hash('sha256', $token)]);
+        } catch (PDOException $e) { }
+    }
+}
+if (isset($pdo) && $pdo instanceof PDO) kalici_oturumu_yukle($pdo);
 
 if (!function_exists('ayar_al')) {
     function ayar_al($pdo, $anahtar, $varsayilan = null) {
@@ -278,7 +346,7 @@ if (!function_exists('coklu_lig_yukselt')) {
             if (!$bireysel) {
                 $pdo->prepare("INSERT INTO ligler (lig_adi,tur,sezon,sezon_id,aciklama) VALUES (?,?,?,?,?)")->execute(['Bireysel Bölge Ligleri','bireysel',defined('LIG_SEZON')?LIG_SEZON:null,$pdo->query("SELECT id FROM sezonlar WHERE sezon_adi=".$pdo->quote(defined('LIG_SEZON')?LIG_SEZON:'2025-2026'))->fetchColumn(),'Sporcuların bölge ve kategori gruplarında bireysel olarak yarıştığı lig.']);
                 $bireysel=(int)$pdo->lastInsertId();
-                foreach (['Marmara Bölgesi','İç Anadolu Bölgesi'] as $bolge) foreach (['Minikler','Yıldızlar','Gençler','Yetişkin','Kadınlar'] as $kategori) $pdo->prepare("INSERT INTO gruplar (lig_id,grup_adi,bolge_adi,kategori_adi,aciklama,sezon) VALUES (?,?,?,?,?,?)")->execute([$bireysel,$bolge.' > '.$kategori,$bolge,$kategori,'Bireysel lig bölgesi',defined('LIG_SEZON')?LIG_SEZON:null]);
+                if (!defined('TEMIZ_KURULUM')) foreach (['Marmara Bölgesi','İç Anadolu Bölgesi'] as $bolge) foreach (['Minikler','Yıldızlar','Gençler','Yetişkin','Kadınlar'] as $kategori) $pdo->prepare("INSERT INTO gruplar (lig_id,grup_adi,bolge_adi,kategori_adi,aciklama,sezon) VALUES (?,?,?,?,?,?)")->execute([$bireysel,$bolge.' > '.$kategori,$bolge,$kategori,'Bireysel lig bölgesi',defined('LIG_SEZON')?LIG_SEZON:null]);
             }
             /* Eski, kategori tanımı olmayan bireysel bölge gruplarını kullanılabilir kategori gruplarına tamamla. */
             $eskiGruplar=$pdo->prepare("SELECT g.* FROM gruplar g JOIN ligler l ON l.id=g.lig_id WHERE l.id=? AND l.tur='bireysel' AND (g.kategori_adi IS NULL OR TRIM(g.kategori_adi)='')");

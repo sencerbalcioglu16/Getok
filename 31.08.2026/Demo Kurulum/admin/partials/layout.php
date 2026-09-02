@@ -53,12 +53,13 @@ $bolumler=['dashboard'=>'GENEL','ligler'=>'ORGANİZASYON YÖNETİMİ','takimlar'
 <html lang="tr"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= e($admin_baslik??'Yönetim') ?> — <?= e(LIG_ADI) ?></title>
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin-editor.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/organizasyon-secim.css">
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin-editor.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/organizasyon-secim.css"><script src="<?= BASE_URL ?>/assets/js/admin-menu.js" defer></script>
 </head><body class="admin-body"><div class="admin-wrapper">
-<aside class="admin-sidebar"><div class="sidebar-brand"><a href="<?= BASE_URL ?>/admin/<?= in_array($rol,['admin','yonetici'],true)?'':'profil.php' ?>"><strong>🎯 Yönetim</strong></a></div>
+<aside class="admin-sidebar" id="yonetimMenusu"><div class="sidebar-brand"><a href="<?= BASE_URL ?>/admin/<?= in_array($rol,['admin','yonetici'],true)?'':'profil.php' ?>"><strong>🎯 Yönetim</strong></a></div>
 <nav class="sidebar-nav"><ul><?php foreach($menu[$rol]??[] as $m): ?><?php if(in_array($rol,['admin','yonetici'],true)&&isset($bolumler[$m[0]])): ?><li class="sidebar-section"><?= $bolumler[$m[0]] ?></li><?php endif; ?><li<?= $m[0]==='gruplar'?' class="sidebar-sub-link"':'' ?>><a href="<?= BASE_URL.$m[3] ?>" class="<?= ($admin_aktif??'')===$m[0]?'active':'' ?>"><?= $m[1] ?> <?= $m[2] ?></a></li><?php endforeach; ?><li><hr></li><li><a href="<?= BASE_URL ?>/admin/cikis.php">🚪 Çıkış</a></li></ul></nav>
 </aside>
-<main class="admin-main"><header class="admin-header"><div class="header-left"><a class="btn btn-sm btn-outline" href="<?= e($admin_geri_url) ?>">← <?= e($admin_geri_ad) ?></a><h1><?= e($admin_baslik??'Yönetim Panosu') ?></h1></div><div class="header-right"><span><?= e($u['ad_soyad']??'') ?> (<?= e($rol) ?>)</span></div></header>
+<div class="admin-menu-overlay" aria-hidden="true"></div>
+<main class="admin-main"><header class="admin-header"><button type="button" class="admin-menu-toggle" aria-label="Yönetim menüsünü aç" aria-controls="yonetimMenusu" aria-expanded="false"><span></span><span></span><span></span></button><div class="header-left"><a class="btn btn-sm btn-outline" href="<?= e($admin_geri_url) ?>">← <?= e($admin_geri_ad) ?></a><h1><?= e($admin_baslik??'Yönetim Panosu') ?></h1></div><div class="header-right"><span><?= e($u['ad_soyad']??'') ?> (<?= e($rol) ?>)</span></div></header>
 <?php if($flash): ?><div class="flash flash-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div><?php endif; ?>
 <div class="admin-content"><?= $admin_icerik??'' ?></div><footer class="admin-footer"><small><?= e(LIG_ADI) ?> v<?= e(SURUM) ?> · <?= date('Y') ?></small></footer></main>
 </div></body></html>

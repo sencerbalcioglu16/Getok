@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hata = 'Hatalı kullanıcı adı veya şifre.';
             } else {
                 $pdo->prepare("UPDATE users SET son_giris = NOW() WHERE id = ?")->execute([$u['id']]);
-                oturum_ac($u);
+                oturum_ac($u, !empty($_POST['beni_hatirla']), $pdo);
                 flash_set('basari', 'Hoş geldiniz, ' . ($u['ad_soyad'] ?: $u['kullanici_adi']) . '.');
                 redirect(hesap_sayfasi_url());
             }
@@ -46,11 +46,12 @@ require_once __DIR__ . '/includes/header.php';
         <form method="post" class="form">
             <?= csrf_field() ?>
             <label>Kullanıcı Adı veya E-posta
-                <input type="text" name="kullanici_adi" required autofocus>
+                <input type="text" name="kullanici_adi" required autofocus autocomplete="username">
             </label>
             <label>Şifre
-                <input type="password" name="sifre" required>
+                <input type="password" name="sifre" required autocomplete="current-password">
             </label>
+            <label class="check-line"><input type="checkbox" name="beni_hatirla" value="1"> Bu cihazda 30 gün beni hatırla</label>
             <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
         </form>
         <p class="muted center">Hesabınız yok mu? <a href="<?= BASE_URL ?>/register.php">Üye olun</a></p>
