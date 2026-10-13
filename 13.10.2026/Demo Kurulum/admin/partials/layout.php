@@ -1,0 +1,71 @@
+<?php
+require_once __DIR__.'/../../includes/functions.php';
+$flash=flash_get();$u=kullanici_bilgi();$rol=$u['rol']??'';
+$admin_icerik=str_replace(['Bireysel Okçuluk Bölge Ligleri','Grup / bölge adları','Marmara Bölgesi&#10;İç Anadolu Bölgesi'],['Bireysel Bölge Ligleri','Grup veya bölge-kategori bilgisi','Bursa - Balıkesir Bölgesi > Minikler Grubu'],$admin_icerik??'');
+$admin_icerik=str_replace(
+ ['Toy Yarışını Düzenle','Toy Yarışlarını Oluştur','Toy Yarışı ve tüm puanları silinsin mi?','Henüz Toy Yarışı oluşturulmadı.','Toy\'lar','Toy Yarışları','Toy Yarışı','Toy Karşılaşmaları','Toy Oluştur','Toy adı','Toy için','Tüm Toy\'lar','Bursa Toyu',' Toyu'],
+ ['Yarışmayı Düzenle','Yarışmaları Oluştur','Yarışma ve tüm puanları silinsin mi?','Henüz yarışma oluşturulmadı.','Yarışmalar','Yarışmalar','Yarışma','Yarışma Puan Girişi','Yarışma Oluştur','Yarışma adı','yarışma için','Tüm Yarışmalar','Bursa Yarışmaları',' Yarışmaları'],
+ $admin_icerik
+);
+$admin_baslik=str_replace('Şampiyona / Turnuva','Turnuvalar',$admin_baslik??'');
+$admin_baslik=str_replace(['Toy\'lar','Toy Yarışları','Toy Yarışı','Toy Karşılaşmaları'],['Yarışmalar','Yarışmalar','Yarışma','Yarışma Puan Girişi'],$admin_baslik);
+$admin_geri_url=$admin_geri_url??BASE_URL.'/admin/';$admin_geri_ad=$admin_geri_ad??'Yönetim Panosu';
+$admin_icerik=str_replace(['Yeni Şampiyona / Turnuva','Şampiyona / Turnuva','Geleneksel Okçuluk Türkiye Şampiyonası'],['Yeni Turnuva','Turnuvalar','Geleneksel Okçuluk Türkiye Turnuvası'],$admin_icerik??'');
+$menu=[
+ 'admin'=>[
+  ['dashboard','📊','Pano','/admin/'],
+  ['ligler','🏆','Ligler ve Sezon','/admin/ligler.php'],
+  ['gruplar','↳','Gruplar ve Fikstür','/admin/gruplar-ve-fikstur.php'],
+  ['turnuvalar','🏆','Turnuvalar','/admin/turnuvalar.php'],
+  ['toylar','🏹','Yarışmalar','/admin/toylar.php'],
+  ['toy-yarislari','↳','Yarışma Yönetimi','/admin/toy-yarislari.php'],
+  ['toy-karsilasmalar','✍️','Yarışma Puan Girişi','/admin/toy-karsilasmalari.php'],
+  ['maclar','📅','Karşılaşmalar','/admin/maclar.php'],
+  ['skor','✍️','Skor Girişi','/admin/mac-skor.php'],
+  ['takimlar','🏛️','Takımlar','/admin/takimlar.php'],
+  ['sporcular','🏹','Sporcular','/admin/sporcular.php'],
+  ['hakemler','⚖️','Hakemler','/admin/hakemler.php'],
+  ['yetkili','👤','Yetkililer','/admin/yetkili.php'],
+  ['yoneticiler','🛡️','Yöneticiler','/admin/yoneticiler.php'],
+  ['uyeler','👥','Üyeler','/admin/uyeler.php'],
+  ['duyurular','📢','Duyurular','/admin/duyurular.php'],
+  ['haberler','📰','Haberler','/admin/haberler.php'],
+  ['yonetmelik','📜','Yönetmelikler','/admin/yonetmelikler.php'],
+  ['sayfalar','🏢','Kurumsal Sayfalar','/admin/sayfalar.php'],
+  ['profil','👤','Profilim','/admin/profil.php']
+ ],
+ 'yonetici'=>[
+  ['dashboard','📊','Pano','/admin/'],
+  ['ligler','🏆','Ligler ve Sezon','/admin/ligler.php'],
+  ['gruplar','↳','Gruplar ve Fikstür','/admin/gruplar-ve-fikstur.php'],
+  ['turnuvalar','🏆','Turnuvalar','/admin/turnuvalar.php'],
+  ['toylar','🏹','Yarışmalar','/admin/toylar.php'],
+  ['toy-yarislari','↳','Yarışma Yönetimi','/admin/toy-yarislari.php'],
+  ['takimlar','🏛️','Takımlar','/admin/takimlar.php'],
+  ['sporcular','🏹','Sporcular','/admin/sporcular.php'],
+  ['profil','👤','Profilim','/admin/profil.php']
+ ],
+ 'yetkili'=>[['sporcular','🏹','Sporcular','/admin/sporcular.php'],['profil','👤','Profilim','/admin/profil.php']],
+ 'hakem'=>[['maclar','📅','Karşılaşmalar','/admin/maclar.php'],['skor','✍️','Skor Girişi','/admin/mac-skor.php'],['toy-karsilasmalar','🏹','Yarışma Puan Girişi','/admin/toy-karsilasmalari.php'],['profil','👤','Profilim','/admin/profil.php']],
+ 'sporcu'=>[['profil','👤','Profilim','/admin/profil.php']]
+];
+$izinli=array_column($menu[$rol]??[],0);
+if(in_array($rol,['admin','yonetici'],true))$izinli=array_merge($izinli,['gruplar','toylar','toy-yarislari']);
+if($rol==='yetkili'){$p=$pdo->prepare("SELECT pozisyon FROM yetkili WHERE user_id=?");$p->execute([$u['id']]);if($p->fetchColumn()==='Yönetici'){$menu['yetkili']=array_merge([['takimlar','🏛️','Takımlarım','/admin/takimlar.php']],$menu['yetkili']);$izinli=array_column($menu['yetkili'],0);}}
+if(!in_array($admin_aktif??'', $izinli, true)){http_response_code(403);exit('Bu sayfaya erişim yetkiniz bulunmuyor.');}
+$bolumler=['dashboard'=>'GENEL','ligler'=>'ORGANİZASYON YÖNETİMİ','takimlar'=>'KATILIMCILAR','duyurular'=>'İÇERİK VE HESAPLAR'];
+?>
+<!doctype html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title><?= e($admin_baslik??'Yönetim') ?> — <?= e(LIG_ADI) ?></title>
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin-editor.css"><link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/organizasyon-secim.css"><script src="<?= BASE_URL ?>/assets/js/admin-menu.js" defer></script>
+</head><body class="admin-body"><div class="admin-wrapper">
+<aside class="admin-sidebar" id="yonetimMenusu"><div class="sidebar-brand"><a href="<?= BASE_URL ?>/admin/<?= in_array($rol,['admin','yonetici'],true)?'':'profil.php' ?>"><strong>🎯 Yönetim</strong></a></div>
+<nav class="sidebar-nav"><ul><?php foreach($menu[$rol]??[] as $m): ?><?php if(in_array($rol,['admin','yonetici'],true)&&isset($bolumler[$m[0]])): ?><li class="sidebar-section"><?= $bolumler[$m[0]] ?></li><?php endif; ?><li<?= in_array($m[0],['gruplar','toy-yarislari','toy-karsilasmalar'],true)?' class="sidebar-sub-link"':'' ?>><a href="<?= BASE_URL.$m[3] ?>" class="<?= ($admin_aktif??'')===$m[0]?'active':'' ?>"><?= $m[1] ?> <?= $m[2] ?></a></li><?php endforeach; ?><li><hr></li><li><a href="<?= BASE_URL ?>/admin/cikis.php">🚪 Çıkış</a></li></ul></nav>
+</aside>
+<div class="admin-menu-overlay" aria-hidden="true"></div>
+<main class="admin-main"><header class="admin-header"><button type="button" class="admin-menu-toggle" aria-label="Yönetim menüsünü aç" aria-controls="yonetimMenusu" aria-expanded="false"><span></span><span></span><span></span></button><div class="header-left"><a class="btn btn-sm btn-outline" href="<?= e($admin_geri_url) ?>">← <?= e($admin_geri_ad) ?></a><h1><?= e($admin_baslik??'Yönetim Panosu') ?></h1></div><div class="header-right"><span><?= e($u['ad_soyad']??'') ?> (<?= e($rol) ?>)</span></div></header>
+<?php if($flash): ?><div class="flash flash-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div><?php endif; ?>
+<div class="admin-content"><?= $admin_icerik??'' ?></div><footer class="admin-footer"><small><?= e(LIG_ADI) ?> v<?= e(SURUM) ?> · <?= date('Y') ?></small></footer></main>
+</div></body></html>

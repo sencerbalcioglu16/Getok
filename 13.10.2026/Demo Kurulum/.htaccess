@@ -1,0 +1,31 @@
+Options -Indexes
+DirectoryIndex index.php
+ErrorDocument 404 /index.php
+
+# Canlı ortam: ayrıntılı PHP hataları yalnızca sunucu hata günlüğüne yazılır.
+php_flag display_errors off
+php_flag display_startup_errors off
+php_flag expose_php off
+php_value log_errors on
+php_value error_reporting E_ALL
+
+# Doğrudan çalıştırılması veya indirilmesi sakıncalı yönetim/kurulum dosyaları.
+<FilesMatch "^(install\.sql|database\.php|config\.php|.*-old\.php)$">
+    Require all denied
+</FilesMatch>
+# Temel tarayıcı korumaları. HTTPS zorlaması hosting panelinden veya vhost'tan yapılmalıdır.
+<IfModule mod_headers.c>
+    Header always unset Server
+    Header always unset X-Powered-By
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Content-Security-Policy "upgrade-insecure-requests; default-src 'self'; img-src 'self' data: https:; style-src 'self' https://getok.com.tr https://www.getok.com.tr 'unsafe-inline'; script-src 'self' https://getok.com.tr https://www.getok.com.tr 'unsafe-inline'; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'"
+</IfModule>
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
